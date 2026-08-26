@@ -526,10 +526,15 @@
       if (byCategory[data.category]) byCategory[data.category].push(data);
     });
 
-    Object.entries(grids).forEach(([cat, el]) => {
-      if (!el) return;
-      const items = byCategory[cat];
-      el.innerHTML = items.length
+Object.entries(grids).forEach(([cat, el]) => {
+  if (!el) return;
+  const items = byCategory[cat];
+  items.sort((a, b) => {
+    const dateA = (a.datetime || '').replace(/[^0-9]/g, '');
+    const dateB = (b.datetime || '').replace(/[^0-9]/g, '');
+    return dateB.localeCompare(dateA);
+  });
+  el.innerHTML = items.length
         ? items.map(cellHTML).join('')
         : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
     });
