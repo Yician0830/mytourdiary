@@ -192,11 +192,12 @@
     background:linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
     display:flex; justify-content:space-between; align-items:flex-end; gap:10px;
   }
-  .caption-bar .cap-title{ font-family:var(--editorial); font-style:normal; font-size:10px; color:#f4f2ec; }
+  .caption-bar .cap-title{
+  font-family:var(--editorial); font-style:normal; font-size:10px; color:#f4f2ec;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; line-height:1.3;
 }
-  .caption-bar .cap-meta{ font-family:var(--mono); font-size:10px; color:#cfc9ba; text-align:right; white-space:nowrap; display:none; }
+.caption-bar .cap-meta{ font-family:var(--mono); font-size:10px; color:#cfc9ba; text-align:right; white-space:nowrap; display:none; }
 
   /* simple grid (3-col) for candid/fanmeet sections */
   .grid3{ display:grid; grid-template-columns:repeat(6,1fr); gap:2px; }
