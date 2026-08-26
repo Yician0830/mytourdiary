@@ -103,8 +103,32 @@
   .photo-item .del:hover{ background:var(--press); color:#fff; }
   .empty{ font-family:var(--mono); font-size:12px; color:var(--ink-faint); padding:30px 0; text-align:center; }
 
-  a.view-site{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); letter-spacing:0.05em; }
+    a.view-site{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); letter-spacing:0.05em; }
   a.view-site:hover{ color:var(--press); }
+
+  /* ===== EDIT MODAL ===== */
+  .btn-row{ display:flex; }
+  .btn-row button{
+    flex:1; background:none; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; padding:8px; letter-spacing:0.05em;
+  }
+  .btn-row .edit{ color:var(--ink-dim); border-right:1px solid var(--line); }
+  .btn-row .edit:hover{ background:var(--ink); color:#fff; }
+  .btn-row .del{ color:var(--press); width:auto; }
+  .btn-row .del:hover{ background:var(--press); color:#fff; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(21,19,15,0.55);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:300;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{
+    width:100%; max-width:420px; background:#fff; border:1px solid var(--line);
+    padding:28px; max-height:90vh; overflow-y:auto;
+  }
+  .modal-card h2{ font-family:var(--display); font-weight:900; font-size:22px; margin-bottom:18px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .modal-actions button{ flex:1; }
 </style>
 </head>
 <body>
@@ -192,14 +216,43 @@
     </div>
   </div>
 </div>
-
+<!-- ===== 編輯照片彈窗 ===== -->
+<div class="modal-overlay" id="edit-overlay">
+  <div class="modal-card">
+    <h2>編輯照片資訊</h2>
+    <div class="field">
+      <label>分類</label>
+      <select id="e-category">
+        <option value="stage">舞台之上 On Stage</option>
+        <option value="airport">直擊現場 Candid</option>
+        <option value="fanmeet">近距離 Face to Face</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>日期時間</label>
+      <input type="text" id="e-datetime">
+    </div>
+    <div class="field">
+      <label>標題</label>
+      <input type="text" id="e-title">
+    </div>
+    <div class="field">
+      <label>地點</label>
+      <input type="text" id="e-venue">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="edit-cancel">取消</button>
+      <button id="edit-save">儲存修改</button>
+    </div>
+  </div>
+</div>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import {
-    getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp
+        getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
   // ===== 你的專案設定（已填好） =====
@@ -377,7 +430,10 @@
           <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
         </div>
-        <button class="del" data-id="${p.id}">刪除</button>
+        <div class="btn-row">
+          <button class="edit" data-id="${p.id}">編輯</button>
+          <button class="del" data-id="${p.id}">刪除</button>
+        </div>
       `;
       photoGrid.appendChild(el);
     });
@@ -387,7 +443,60 @@
         await deleteDoc(doc(db, 'photos', btn.dataset.id));
       });
     });
+    photoGrid.querySelectorAll('.edit').forEach(btn => {
+      btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+    });
   }
+
+    // ===== 編輯照片 =====
+  const editOverlay = document.getElementById('edit-overlay');
+  const eCategory = document.getElementById('e-category');
+  const eDatetime = document.getElementById('e-datetime');
+  const eTitle = document.getElementById('e-title');
+  const eVenue = document.getElementById('e-venue');
+  const editSaveBtn = document.getElementById('edit-save');
+  const editCancelBtn = document.getElementById('edit-cancel');
+  let editingId = null;
+
+  function openEditModal(id){
+    const p = allPhotos.find(x => x.id === id);
+    if(!p) return;
+    editingId = id;
+    eCategory.value = p.category || 'stage';
+    eDatetime.value = p.datetime || '';
+    eTitle.value = p.title || '';
+    eVenue.value = p.venue || '';
+    editOverlay.classList.add('open');
+  }
+
+  function closeEditModal(){
+    editOverlay.classList.remove('open');
+    editingId = null;
+  }
+
+  editCancelBtn.addEventListener('click', closeEditModal);
+  editOverlay.addEventListener('click', (e) => { if(e.target === editOverlay) closeEditModal(); });
+
+  editSaveBtn.addEventListener('click', async () => {
+    if(!editingId) return;
+    editSaveBtn.disabled = true;
+    editSaveBtn.textContent = '儲存中…';
+    try{
+      await updateDoc(doc(db, 'photos', editingId), {
+        category: eCategory.value,
+        datetime: eDatetime.value.trim(),
+        title: eTitle.value.trim(),
+        venue: eVenue.value.trim()
+      });
+      closeEditModal();
+    }catch(err){
+      console.error(err);
+      alert('儲存失敗,請稍後再試一次');
+    }finally{
+      editSaveBtn.disabled = false;
+      editSaveBtn.textContent = '儲存修改';
+    }
+  });
 
   function escapeHTML(str){
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
