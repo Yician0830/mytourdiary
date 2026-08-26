@@ -195,7 +195,7 @@
   .caption-bar .cap-meta{ font-family:var(--mono); font-size:10px; color:#cfc9ba; text-align:right; white-space:nowrap; }
 
   /* simple grid (3-col) for candid/fanmeet sections */
-  .grid3{ display:grid; grid-template-columns:repeat(8,1fr); gap:2px; }
+  .grid3{ display:grid; grid-template-columns:repeat(6,1fr); gap:2px; }
   @media (max-width:820px){ .grid3{ grid-template-columns:repeat(3,1fr); } }
   @media (max-width:520px){ .grid3{ grid-template-columns:1fr; } }
   .grid3 .cell{ aspect-ratio:3/4; position:relative; overflow:hidden; }
@@ -535,7 +535,7 @@
     });
 if (coverPreview && all.length){
   const shuffled = [...all].sort(() => Math.random() - 0.5);
-  coverPreview.innerHTML = shuffled.slice(0, 8).map(p =>
+  coverPreview.innerHTML = shuffled.slice(0, 6).map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
       ).join('');
     }
