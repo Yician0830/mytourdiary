@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>站名 — 巡演寫真誌 TOUR DIARY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Noto+Serif+TC:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:     #f4f2ec;
+    --paper-2:   #ece8de;
+    --ink:       #15130f;
+    --ink-dim:   #56503f;
+    --ink-faint: #96907d;
+    --line:      rgba(21,19,15,0.14);
+    --line-strong: rgba(21,19,15,0.3);
+    --press:     #cc2036;
+    --lcd:       #e8850f;
+    --display: 'Bebas Neue', 'Noto Serif TC', serif;
+    --editorial: 'Newsreader', 'Noto Serif TC', Georgia, serif;
+    --sans: 'Inter', 'Noto Sans TC', -apple-system, sans-serif;
+    --mono: 'Space Mono', 'Noto Sans TC', monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-weight:400;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{ background:var(--press); color:var(--paper); }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 40px; }
+  @media (max-width:640px){ .wrap{ padding:0 20px; } }
+  img{ display:block; width:100%; height:100%; object-fit:cover; }
+
+  /* ===== NAV ===== */
+  nav{
+    position:sticky; top:0; z-index:100;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:18px 40px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  @media (max-width:640px){ nav{ padding:16px 20px; } }
+  .nav-mark{ font-family:var(--display); font-weight:700; font-size:20px; letter-spacing:0.04em; }
+  .nav-mark span{ color:var(--press); }
+  .nav-links{ display:flex; gap:28px; }
+  .nav-links a{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--ink-dim);
+    transition:color .2s;
+  }
+  .nav-links a:hover{ color:var(--press); }
+  @media (max-width:700px){ .nav-links{ display:none; } }
+
+  /* ===== COVER / HERO ===== */
+  .cover{
+    min-height:92vh;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:48px 40px 60px;
+    position:relative;
+  }
+  .cover-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    letter-spacing:0.06em; flex-wrap:wrap; gap:10px;
+  }
+  .cover-issue{
+    display:inline-block; background:var(--press); color:var(--paper);
+    padding:3px 10px; font-family:var(--mono); font-size:11px;
+    letter-spacing:0.06em; margin-bottom:8px;
+  }
+  .cover-mid{
+    text-align:center;
+    padding:40px 0;
+  }
+  .cover-mid .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.28em;
+    color:var(--ink-dim); text-transform:uppercase; margin-bottom:18px;
+  }
+  .cover-title{
+    font-family:var(--display);
+    font-weight:900;
+    font-size:clamp(72px, 15vw, 220px);
+    line-height:0.86;
+    letter-spacing:0.01em;
+    color:var(--ink);
+  }
+  .cover-sub{
+    font-family:var(--editorial); font-style:italic; font-weight:400;
+    font-size:clamp(18px,2.4vw,26px);
+    color:var(--ink-dim); margin-top:14px;
+  }
+  .cover-lines{
+    display:flex; justify-content:center; gap:36px; flex-wrap:wrap;
+    margin-top:34px;
+    font-family:var(--sans); font-size:14px; font-weight:500; color:var(--ink);
+  }
+  .cover-lines span{ color:var(--press); font-weight:600; margin-right:6px; }
+
+  .cover-bottom{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:2px;
+    height:34vh; min-height:220px;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  @media (max-width:700px){ .cover-bottom{ grid-template-columns:repeat(2,1fr); height:auto; } .cover-bottom .frame:last-child{ display:none; } }
+  .cover-bottom .frame{ position:relative; overflow:hidden; min-height:160px; }
+
+  /* ===== FLASH PLACEHOLDER LOOK ===== */
+  .flash{ position:relative; background:#0d0c0b; overflow:hidden; }
+  .flash::before{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 38%, rgba(255,255,255,0.5), rgba(255,255,255,0.06) 38%, rgba(0,0,0,0.55) 78%);
+  }
+  .flash::after{
+    content:""; position:absolute; inset:0; mix-blend-mode:overlay; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .flash-stage::before{ background:radial-gradient(circle at 50% 30%, rgba(190,150,255,0.55), rgba(70,40,110,0.15) 40%, rgba(5,4,10,0.7) 80%); }
+  .flash-airport::before{ background:radial-gradient(circle at 55% 45%, rgba(255,255,255,0.45), rgba(120,120,120,0.1) 42%, rgba(10,10,10,0.65) 82%); }
+  .flash-meet::before{ background:radial-gradient(circle at 45% 40%, rgba(255,214,170,0.5), rgba(120,70,40,0.12) 42%, rgba(10,7,4,0.68) 82%); }
+
+  .placeholder-mark{
+    position:absolute; inset:0; z-index:2;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; color:rgba(244,242,236,0.55);
+    letter-spacing:0.06em; text-align:center; padding:16px;
+  }
+
+  /* date-stamp — like a point-and-shoot camera's burned-in timestamp */
+  .stamp{
+    position:absolute; right:10px; bottom:9px; z-index:3;
+    font-family:var(--mono); font-size:11px; font-weight:700;
+    color:var(--lcd); letter-spacing:0.03em;
+    text-shadow:0 0 3px rgba(0,0,0,.6);
+  }
+
+  /* ===== SECTION HEAD ===== */
+  .section-head{
+    padding:100px 0 40px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-top:1px solid var(--line);
+    margin-top:60px;
+    flex-wrap:wrap; gap:16px;
+  }
+  .section-head .num{ font-family:var(--mono); font-size:12px; color:var(--press); letter-spacing:0.1em; }
+  .section-head h2{
+    font-family:var(--display); font-weight:900; font-size:clamp(40px,6vw,88px);
+    letter-spacing:0.01em; line-height:0.95; margin-top:6px;
+  }
+  .section-head .desc{
+    max-width:280px; font-family:var(--editorial); font-style:italic;
+    font-size:15px; color:var(--ink-dim); text-align:right;
+  }
+  @media (max-width:700px){ .section-head .desc{ text-align:left; } }
+
+  /* ===== TABLE OF CONTENTS ===== */
+  .toc{ padding:60px 0 20px; }
+  .toc-row{
+    display:grid; grid-template-columns:70px 1fr auto auto;
+    align-items:baseline; gap:20px;
+    padding:16px 0; border-top:1px solid var(--line);
+  }
+  .toc-row:last-child{ border-bottom:1px solid var(--line); }
+  .toc-row .pg{ font-family:var(--mono); font-size:12px; color:var(--ink-faint); }
+  .toc-row .ti{ font-family:var(--editorial); font-size:22px; font-style:italic; }
+  .toc-row .ct{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
+  .toc-row .dots{ display:none; }
+  @media (max-width:640px){
+    .toc-row{ grid-template-columns:40px 1fr; }
+    .toc-row .ct{ display:none; }
+  }
+
+  /* ===== SPREAD GRID ===== */
+  .spread{
+    display:grid; grid-template-columns:1.4fr 1fr; gap:2px;
+    margin-bottom:2px;
+  }
+  .spread.reverse{ grid-template-columns:1fr 1.4fr; }
+  .spread.reverse .big{ order:2; }
+  @media (max-width:820px){
+    .spread, .spread.reverse{ grid-template-columns:1fr; }
+    .spread.reverse .big{ order:0; }
+  }
+  .spread .big{ aspect-ratio:4/3; position:relative; overflow:hidden; }
+  .spread .small{ aspect-ratio:4/3; position:relative; overflow:hidden; }
+
+  .caption-bar{
+    position:absolute; left:0; right:0; bottom:0; z-index:3;
+    padding:14px 16px;
+    background:linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
+    display:flex; justify-content:space-between; align-items:flex-end; gap:10px;
+  }
+  .caption-bar .cap-title{ font-family:var(--editorial); font-style:italic; font-size:16px; color:#f4f2ec; }
+  .caption-bar .cap-meta{ font-family:var(--mono); font-size:10px; color:#cfc9ba; text-align:right; white-space:nowrap; }
+
+  /* simple grid (3-col) for candid/fanmeet sections */
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+  @media (max-width:820px){ .grid3{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .grid3{ grid-template-columns:1fr; } }
+  .grid3 .cell{ aspect-ratio:3/4; position:relative; overflow:hidden; }
+  .empty-note{
+    grid-column:1/-1; padding:70px 20px; text-align:center;
+    font-family:var(--mono); font-size:12px; color:var(--ink-faint);
+    letter-spacing:0.06em; border:1px dashed var(--line);
+  }
+
+  .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+
+  /* ===== DIARY / PULL QUOTE STRIP ===== */
+  .diary{
+    padding:100px 0; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:1fr 1fr; gap:70px;
+    align-items:center;
+  }
+  @media (max-width:820px){ .diary{ grid-template-columns:1fr; gap:34px; } }
+  .diary-photo{ aspect-ratio:4/5; position:relative; overflow:hidden; }
+  .diary-quote{
+    font-family:var(--editorial); font-style:italic; font-weight:400;
+    font-size:clamp(22px,3vw,34px); line-height:1.5; color:var(--ink);
+  }
+  .diary-quote .mark{ color:var(--press); font-family:var(--display); font-size:44px; line-height:0; vertical-align:-14px; margin-right:4px; }
+  .diary-meta{ margin-top:26px; font-family:var(--mono); font-size:11px; color:var(--ink-faint); letter-spacing:0.05em; }
+
+  /* ===== COLOPHON / CREDITS ===== */
+  .colophon{
+    padding:90px 0 60px; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:repeat(3,1fr); gap:40px;
+  }
+  @media (max-width:820px){ .colophon{ grid-template-columns:1fr; gap:32px; } }
+  .colophon h3{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--press); margin-bottom:14px;
+  }
+  .colophon p, .colophon li{ font-size:14px; color:var(--ink-dim); line-height:1.8; }
+  .colophon ul{ list-style:none; }
+  .colophon li{ padding:4px 0; }
+
+  /* ===== CONTACT ===== */
+  .contact{
+    padding:70px 0 40px; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:24px;
+  }
+  .contact h2{
+    font-family:var(--display); font-size:clamp(44px,7vw,90px); line-height:0.9;
+  }
+  .contact-links{ display:flex; flex-direction:column; gap:8px; text-align:right; }
+  .contact-links a{
+    font-family:var(--mono); font-size:13px; letter-spacing:0.04em; color:var(--ink-dim);
+    border-bottom:1px solid transparent; padding-bottom:2px;
+    transition:color .2s, border-color .2s;
+  }
+  .contact-links a:hover{ color:var(--press); border-color:var(--press); }
+
+  footer{
+    padding:26px 40px 50px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    font-family:var(--mono); font-size:10px; color:var(--ink-faint); letter-spacing:0.05em;
+  }
+
+  /* ===== LIGHTBOX ===== */
+  .lightbox{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(15,13,10,0.96);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s ease; padding:40px;
+  }
+  .lightbox.open{ opacity:1; pointer-events:auto; }
+  .lightbox-inner{ max-width:760px; width:100%; }
+  .lightbox-frame{ aspect-ratio:4/5; max-height:70vh; width:auto; margin:0 auto; position:relative; overflow:hidden; }
+  .lightbox-cap{ display:flex; justify-content:space-between; margin-top:18px; font-family:var(--mono); font-size:11px; color:#cfc9ba; }
+  .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
+  .lightbox-close:hover{ color:var(--press); }
+
+  ::-webkit-scrollbar{ width:9px; }
+  ::-webkit-scrollbar-track{ background:var(--paper); }
+  ::-webkit-scrollbar-thumb{ background:#c7c1af; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-mark">站名<span>.</span>TOUR DIARY</div>
+  <div class="nav-links">
+    <a href="#toc">目次</a>
+    <a href="#stage">舞台</a>
+    <a href="#airport">機場</a>
+    <a href="#fanmeet">見面會</a>
+    <a href="#contact">聯絡</a>
+  </div>
+</nav>
+
+<!-- ===== COVER ===== -->
+<header class="cover">
+  <div class="cover-top">
+    <div>
+      <div class="cover-issue">VOL. 04 — 2024 TOUR DIARY</div><br>
+      站名 PHOTOGRAPHY / 非商業應援攝影紀錄
+    </div>
+    <div style="text-align:right;">發行地 台北<br>NO. 001 – 042 · 全紀錄</div>
+  </div>
+
+  <div class="cover-mid">
+    <div class="eyebrow">Fan Account · Est. 2021</div>
+    <div class="cover-title">站名</div>
+    <div class="cover-sub">跟拍每一場,只為那一格對到焦的瞬間</div>
+    <div class="cover-lines">
+      <div><span>01</span>演唱會全紀錄</div>
+      <div><span>02</span>機場直擊</div>
+      <div><span>03</span>見面會獨家</div>
+    </div>
+  </div>
+
+  <div class="cover-bottom" id="cover-preview">
+    <!-- 上傳照片後,這裡會自動換成你最新的 3 張作品 -->
+    <div class="frame flash flash-stage"><div class="placeholder-mark">封面圖 01<br>演唱會</div></div>
+    <div class="frame flash flash-airport"><div class="placeholder-mark">封面圖 02<br>機場</div></div>
+    <div class="frame flash flash-meet"><div class="placeholder-mark">封面圖 03<br>見面會</div></div>
+  </div>
+</header>
+
+<!-- ===== TABLE OF CONTENTS ===== -->
+<section id="toc" class="wrap toc reveal">
+  <div class="section-head" style="padding-top:0; margin-top:0; border-top:none;">
+    <div><div class="num">Contents</div><h2 style="font-size:clamp(32px,5vw,56px);">目次</h2></div>
+  </div>
+  <div class="toc-row">
+    <div class="pg">P. 01</div><div class="ti">舞台之上 — On Stage</div><div class="dots"></div><div class="ct">演唱會 · 12 張精選</div>
+  </div>
+  <div class="toc-row">
+    <div class="pg">P. 02</div><div class="ti">直擊現場 — Candid</div><div class="dots"></div><div class="ct">機場跟拍 · 9 張精選</div>
+  </div>
+  <div class="toc-row">
+    <div class="pg">P. 03</div><div class="ti">近距離 — Face to Face</div><div class="dots"></div><div class="ct">見面會 / 簽售 · 9 張精選</div>
+  </div>
+  <div class="toc-row">
+    <div class="pg">P. 04</div><div class="ti">追星日記 — Diary</div><div class="dots"></div><div class="ct">文字紀錄 · 2 則</div>
+  </div>
+</section>
+
+<!-- ===== 01 STAGE ===== -->
+<section id="stage" class="wrap">
+  <div class="section-head reveal">
+    <div><div class="num">01 — On stage</div><h2>舞台之上</h2></div>
+    <div class="desc">燈光暗下,前奏一下,鏡頭比手更快舉起。</div>
+  </div>
+
+  <div class="grid3 reveal" id="stage-grid">
+    <!-- 上傳「舞台」分類的照片後會自動顯示在這裡 -->
+    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;19:42</div></div>
+    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:03</div></div>
+    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:21</div></div>
+  </div>
+</section>
+
+<!-- ===== 02 AIRPORT / CANDID ===== -->
+<section id="airport" class="wrap">
+  <div class="section-head reveal">
+    <div><div class="num">02 — Candid</div><h2>直擊現場</h2></div>
+    <div class="desc">凌晨五點的入境大廳,永遠值得。</div>
+  </div>
+  <div class="grid3 reveal" id="airport-grid">
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:18</div></div>
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:21</div></div>
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:24</div></div>
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:02</div></div>
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:05</div></div>
+    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:09</div></div>
+  </div>
+</section>
+
+<!-- ===== 03 FANMEET ===== -->
+<section id="fanmeet" class="wrap">
+  <div class="section-head reveal">
+    <div><div class="num">03 — Face to face</div><h2>近距離</h2></div>
+    <div class="desc">排了六小時的隊,只為十秒鐘的眼神交會。</div>
+  </div>
+  <div class="grid3 reveal" id="fanmeet-grid">
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:40</div></div>
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:44</div></div>
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:51</div></div>
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:10</div></div>
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:15</div></div>
+    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
+  </div>
+</section>
+
+<!-- ===== DIARY / PULL QUOTE ===== -->
+<section class="wrap diary reveal">
+  <div class="diary-photo flash flash-stage">
+    <div class="placeholder-mark">替換為代表照片</div>
+    <div class="stamp">'24.08.17&nbsp;20:58</div>
+  </div>
+  <div>
+    <p class="diary-quote"><span class="mark">"</span>那天下著雨,燈牌全部亮起來的瞬間,我突然覺得所有等待都值得了。</p>
+    <div class="diary-meta">追星日記 · 2024.08.17 · 高雄巨蛋場後記</div>
+  </div>
+</section>
+
+<!-- ===== COLOPHON ===== -->
+<div class="wrap">
+<div class="colophon reveal">
+  <div>
+    <h3>拍攝器材</h3>
+    <ul>
+      <li>Canon EOS R6 Mark II</li>
+      <li>RF 100–500mm F4.5-7.1</li>
+      <li>Sony RX100 VII(隨拍 / 日期戳）</li>
+    </ul>
+  </div>
+  <div>
+    <h3>轉載規範</h3>
+    <p>本站所有照片皆為原創拍攝,歡迎分享與轉發,轉載請保留浮水印並標明出處,請勿去除 LOGO 或作商業用途。</p>
+  </div>
+  <div>
+    <h3>拍攝紀錄</h3>
+    <ul>
+      <li>入坑年份 — 2021</li>
+      <li>累積場次 — 42 場</li>
+      <li>足跡城市 — 台北 / 高雄 / 首爾</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<!-- ===== CONTACT ===== -->
+<section id="contact" class="wrap contact reveal">
+  <h2>合作邀約<br>歡迎來信</h2>
+  <div class="contact-links">
+    <a href="#">X（Twitter）@yourhandle</a>
+    <a href="#">Instagram @yourhandle</a>
+    <a href="mailto:hello@yourhandle.com">hello@yourhandle.com</a>
+    <a href="#">相簿全紀錄 → Google Drive</a>
+  </div>
+</section>
+
+<footer>
+  <div>© 2026 站名. 非商業粉絲創作,與所屬經紀公司無關。</div>
+  <div>VOL. 04 · TOUR DIARY · Printed digitally in Taipei</div>
+</footer>
+
+<!-- ===== LIGHTBOX ===== -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-close" id="lightboxClose">關閉 ✕</div>
+  <div class="lightbox-inner">
+    <div class="lightbox-frame" id="lightboxFrame"></div>
+    <div class="lightbox-cap"><span id="lightboxTitle"></span><span id="lightboxMeta"></span></div>
+  </div>
+</div>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold:0.12 });
+  reveals.forEach(el=>io.observe(el));
+
+  const lightbox = document.getElementById('lightbox');
+  const lbFrame = document.getElementById('lightboxFrame');
+  const lbTitle = document.getElementById('lightboxTitle');
+  const lbMeta = document.getElementById('lightboxMeta');
+
+  // 綁定燈箱點擊事件。因為照片會透過 Firebase 動態更新,
+  // 這裡改成獨立函式,每次照片列表更新後都可以重新呼叫一次。
+  function bindLightbox(){
+    document.querySelectorAll('.big, .small, .cell, .diary-photo').forEach(f=>{
+      if(f.dataset.lbBound) return; // 避免同一個元素被重複綁定
+      f.dataset.lbBound = '1';
+      f.style.cursor='pointer';
+      f.addEventListener('click', ()=>{
+        const flashClass = [...f.classList].find(c=>c.startsWith('flash-')) || '';
+        lbFrame.className = 'lightbox-frame flash ' + flashClass;
+        const img = f.querySelector('img');
+        lbFrame.innerHTML = img ? '<img src="'+img.src+'">' : '<div class="placeholder-mark">替換為你的照片</div>';
+        const capTitle = f.querySelector('.cap-title');
+        const capMeta = f.querySelector('.cap-meta');
+        const stamp = f.querySelector('.stamp');
+        lbTitle.textContent = capTitle ? capTitle.textContent : '';
+        lbMeta.textContent = (stamp ? stamp.textContent.replace(/&nbsp;/g,' ') + '  ·  ' : '') + (capMeta ? capMeta.textContent : '');
+        lightbox.classList.add('open');
+      });
+    });
+  }
+  bindLightbox();
+
+  document.getElementById('lightboxClose').addEventListener('click', ()=> lightbox.classList.remove('open'));
+  lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) lightbox.classList.remove('open'); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') lightbox.classList.remove('open'); });
+</script>
+
+<!-- ===== FIREBASE：即時讀取站主上傳的照片（公開頁面只讀,不能寫入） ===== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-vJuZN5Omm8xjQ5aJETfOVJ9DClpj05w",
+    authDomain: "my-tour-diary.firebaseapp.com",
+    projectId: "my-tour-diary",
+    storageBucket: "my-tour-diary.firebasestorage.app",
+    messagingSenderId: "895305453867",
+    appId: "1:895305453867:web:1dd4c7c12358d7321b356e",
+    measurementId: "G-DBP2WDNQJD"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const FLASH_CLASS = { stage: 'flash-stage', airport: 'flash-airport', fanmeet: 'flash-meet' };
+  const grids = {
+    stage:   document.getElementById('stage-grid'),
+    airport: document.getElementById('airport-grid'),
+    fanmeet: document.getElementById('fanmeet-grid'),
+  };
+  const coverPreview = document.getElementById('cover-preview');
+
+  function escapeHTML(str){
+    return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  function cellHTML(p){
+    const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
+    const hasCaption = p.title || p.venue;
+    return `
+      <div class="cell flash ${flashClass}">
+        <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
+        ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
+        ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
+      </div>`;
+  }
+
+  const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
+
+  onSnapshot(q, (snapshot) => {
+    const all = [];
+    const byCategory = { stage: [], airport: [], fanmeet: [] };
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      all.push(data);
+      if (byCategory[data.category]) byCategory[data.category].push(data);
+    });
+
+    Object.entries(grids).forEach(([cat, el]) => {
+      if (!el) return;
+      const items = byCategory[cat];
+      el.innerHTML = items.length
+        ? items.map(cellHTML).join('')
+        : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
+    });
+
+    if (coverPreview && all.length){
+      coverPreview.innerHTML = all.slice(0, 3).map(p =>
+        `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
+      ).join('');
+    }
+
+    bindLightbox();
+  }, (err) => {
+    console.error('讀取 Firestore 照片失敗：', err);
+  });
+</script>
+
+</body>
+</html>

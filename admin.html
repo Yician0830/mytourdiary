@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理後台 — 站名 TOUR DIARY</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4f2ec; --paper-2:#ece8de; --ink:#15130f; --ink-dim:#56503f; --ink-faint:#96907d;
+    --line:rgba(21,19,15,0.14); --line-strong:rgba(21,19,15,0.3);
+    --press:#cc2036; --lcd:#e8850f; --ok:#2e7d4f;
+    --display:'Bebas Neue','Noto Serif TC',serif;
+    --sans:'Inter','Noto Sans TC',-apple-system,sans-serif;
+    --mono:'Space Mono','Noto Sans TC',monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    line-height:1.6; min-height:100vh;
+  }
+  .wrap{ max-width:960px; margin:0 auto; padding:40px 24px 80px; }
+  h1{ font-family:var(--display); font-weight:900; font-size:clamp(32px,5vw,52px); letter-spacing:0.02em; }
+  h1 span{ color:var(--press); }
+  .tag{ font-family:var(--mono); font-size:11px; letter-spacing:0.08em; color:var(--ink-faint); text-transform:uppercase; margin-bottom:8px; }
+
+  /* ===== LOGIN ===== */
+  #login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:360px; background:#fff; border:1px solid var(--line);
+    padding:40px 32px; text-align:center;
+  }
+  .login-card h1{ margin-bottom:6px; }
+  .login-card p{ font-size:13px; color:var(--ink-dim); margin-bottom:28px; }
+  .field{ text-align:left; margin-bottom:16px; }
+  .field label{ display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.05em; color:var(--ink-dim); margin-bottom:6px; text-transform:uppercase; }
+  .field input, .field select{
+    width:100%; padding:11px 12px; border:1px solid var(--line-strong); background:var(--paper);
+    font-family:var(--sans); font-size:14px; color:var(--ink);
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--press); }
+  button{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    background:var(--ink); color:var(--paper); border:none; padding:13px 20px; cursor:pointer;
+    transition:background .2s;
+  }
+  button:hover{ background:var(--press); }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-block{ width:100%; }
+  .btn-ghost{ background:transparent; color:var(--ink-dim); border:1px solid var(--line-strong); }
+  .btn-ghost:hover{ background:var(--paper-2); color:var(--ink); }
+  .msg{ font-family:var(--mono); font-size:12px; margin-top:14px; min-height:16px; }
+  .msg.err{ color:var(--press); }
+  .msg.ok{ color:var(--ok); }
+
+  /* ===== ADMIN PANEL ===== */
+  #panel{ display:none; }
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding-bottom:20px; margin-bottom:30px; border-bottom:1px solid var(--line);
+  }
+  .topbar .who{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); }
+
+  .card{ background:#fff; border:1px solid var(--line); padding:28px; margin-bottom:28px; }
+  .card h2{ font-family:var(--display); font-weight:900; font-size:24px; margin-bottom:18px; letter-spacing:0.02em; }
+
+  .upload-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:600px){ .upload-grid{ grid-template-columns:1fr; } }
+  .upload-grid .field.full{ grid-column:1/-1; }
+
+  .drop{
+    grid-column:1/-1; border:2px dashed var(--line-strong); padding:28px; text-align:center;
+    font-family:var(--mono); font-size:12px; color:var(--ink-dim); cursor:pointer; transition:border-color .2s, background .2s;
+  }
+  .drop.drag{ border-color:var(--press); background:var(--paper-2); }
+  .drop input{ display:none; }
+  .preview-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .preview-list img{ width:64px; height:64px; object-fit:cover; border:1px solid var(--line); }
+
+  .progress{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); margin-top:14px; }
+
+  /* ===== PHOTO LIST ===== */
+  .filter-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .filter-row button{ background:var(--paper-2); color:var(--ink-dim); }
+  .filter-row button.active{ background:var(--ink); color:var(--paper); }
+
+  .photo-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+  .photo-item{ border:1px solid var(--line); background:var(--paper-2); overflow:hidden; }
+  .photo-item .thumb{ aspect-ratio:4/5; overflow:hidden; }
+  .photo-item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-item .info{ padding:10px 12px; }
+  .photo-item .info .t{ font-size:13px; font-weight:500; margin-bottom:2px; }
+  .photo-item .info .m{ font-family:var(--mono); font-size:10px; color:var(--ink-faint); }
+  .photo-item .info .cat{ display:inline-block; font-family:var(--mono); font-size:10px; color:var(--press); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em; }
+  .photo-item .del{
+    width:100%; background:none; color:var(--press); border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; padding:8px; letter-spacing:0.05em;
+  }
+  .photo-item .del:hover{ background:var(--press); color:#fff; }
+  .empty{ font-family:var(--mono); font-size:12px; color:var(--ink-faint); padding:30px 0; text-align:center; }
+
+  a.view-site{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); letter-spacing:0.05em; }
+  a.view-site:hover{ color:var(--press); }
+</style>
+</head>
+<body>
+
+<!-- ===== 登入畫面 ===== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="tag">Admin Only</div>
+    <h1>站名<span>.</span>後台</h1>
+    <p>僅限管理員登入,用來上傳與管理作品集照片</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>密碼</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <button class="btn-block" id="login-btn">登入</button>
+    <div class="msg err" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ===== 管理後台 ===== -->
+<div id="panel">
+  <div class="wrap">
+    <div class="topbar">
+      <h1 style="font-size:28px;">站名<span>.</span>後台</h1>
+      <div style="text-align:right;">
+        <div class="who" id="who"></div>
+        <div style="margin-top:8px; display:flex; gap:12px; justify-content:flex-end;">
+          <a class="view-site" href="index.html" target="_blank">查看公開頁面 ↗</a>
+          <button class="btn-ghost" id="logout-btn" style="padding:6px 14px;">登出</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上傳表單 -->
+    <div class="card">
+      <h2>上傳新照片</h2>
+      <div class="upload-grid">
+        <div class="drop" id="drop">
+          點擊或拖曳照片到這裡上傳(可一次選多張)
+          <input type="file" id="file-input" accept="image/*" multiple>
+          <div class="preview-list" id="preview-list"></div>
+        </div>
+        <div class="field">
+          <label>分類</label>
+          <select id="f-category">
+            <option value="stage">舞台之上 On Stage</option>
+            <option value="airport">直擊現場 Candid</option>
+            <option value="fanmeet">近距離 Face to Face</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>日期時間(顯示在照片右下角)</label>
+          <input type="text" id="f-datetime" placeholder="例如：'24.08.17 19:42">
+        </div>
+        <div class="field">
+          <label>標題</label>
+          <input type="text" id="f-title" placeholder="例如：主舞台 · 開場曲">
+        </div>
+        <div class="field">
+          <label>地點</label>
+          <input type="text" id="f-venue" placeholder="例如：高雄巨蛋">
+        </div>
+        <div class="field full">
+          <button class="btn-block" id="upload-btn">上傳照片</button>
+          <div class="progress" id="upload-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 照片管理 -->
+    <div class="card">
+      <h2>已上傳的照片</h2>
+      <div class="filter-row" id="filter-row">
+        <button data-cat="all" class="active">全部</button>
+        <button data-cat="stage">舞台</button>
+        <button data-cat="airport">機場</button>
+        <button data-cat="fanmeet">見面會</button>
+      </div>
+      <div class="photo-grid" id="photo-grid"></div>
+      <div class="empty" id="empty-note" style="display:none;">目前這個分類還沒有照片</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  // ===== 你的專案設定（已填好） =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-vJuZN5Omm8xjQ5aJETfOVJ9DClpj05w",
+    authDomain: "my-tour-diary.firebaseapp.com",
+    projectId: "my-tour-diary",
+    storageBucket: "my-tour-diary.firebasestorage.app",
+    messagingSenderId: "895305453867",
+    appId: "1:895305453867:web:1dd4c7c12358d7321b356e",
+    measurementId: "G-DBP2WDNQJD"
+  };
+  const CLOUDINARY_CLOUD_NAME = "nmldtpzv";
+  const CLOUDINARY_UPLOAD_PRESET = "xm1rfejx";
+  // ================================
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const loginScreen = document.getElementById('login-screen');
+  const panel = document.getElementById('panel');
+  const loginBtn = document.getElementById('login-btn');
+  const loginMsg = document.getElementById('login-msg');
+  const logoutBtn = document.getElementById('logout-btn');
+  const whoEl = document.getElementById('who');
+
+  loginBtn.addEventListener('click', async () => {
+    loginMsg.textContent = '';
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if(!email || !password){ loginMsg.textContent = '請輸入 Email 和密碼'; return; }
+    loginBtn.disabled = true; loginBtn.textContent = '登入中…';
+    try{
+      await signInWithEmailAndPassword(auth, email, password);
+    }catch(err){
+      loginMsg.textContent = '登入失敗,請確認帳號密碼是否正確';
+      console.error(err);
+    }finally{
+      loginBtn.disabled = false; loginBtn.textContent = '登入';
+    }
+  });
+
+  logoutBtn.addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if(user){
+      loginScreen.style.display = 'none';
+      panel.style.display = 'block';
+      whoEl.textContent = '登入身分：' + user.email;
+      startPhotoSync();
+    } else {
+      loginScreen.style.display = 'flex';
+      panel.style.display = 'none';
+    }
+  });
+
+  // ===== 上傳照片 =====
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('file-input');
+  const previewList = document.getElementById('preview-list');
+  const uploadBtn = document.getElementById('upload-btn');
+  const uploadProgress = document.getElementById('upload-progress');
+
+  let selectedFiles = [];
+
+  dropEl.addEventListener('click', () => fileInput.click());
+  dropEl.addEventListener('dragover', (e) => { e.preventDefault(); dropEl.classList.add('drag'); });
+  dropEl.addEventListener('dragleave', () => dropEl.classList.remove('drag'));
+  dropEl.addEventListener('drop', (e) => {
+    e.preventDefault(); dropEl.classList.remove('drag');
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+  function handleFiles(fileList){
+    selectedFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    previewList.innerHTML = '';
+    selectedFiles.forEach(f => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      previewList.appendChild(img);
+    });
+  }
+
+  uploadBtn.addEventListener('click', async () => {
+    if(selectedFiles.length === 0){ uploadProgress.textContent = '請先選擇至少一張照片'; return; }
+    const category = document.getElementById('f-category').value;
+    const datetime = document.getElementById('f-datetime').value.trim();
+    const title = document.getElementById('f-title').value.trim();
+    const venue = document.getElementById('f-venue').value.trim();
+
+    uploadBtn.disabled = true;
+    let done = 0;
+    for(const file of selectedFiles){
+      uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
+      try{
+        const url = await uploadToCloudinary(file);
+        await addDoc(collection(db, 'photos'), {
+          url, category, datetime, title, venue,
+          createdAt: serverTimestamp()
+        });
+        done++;
+      }catch(err){
+        console.error(err);
+        uploadProgress.textContent = '上傳失敗，請檢查 Cloudinary 設定是否正確';
+        uploadBtn.disabled = false;
+        return;
+      }
+    }
+    uploadProgress.textContent = `完成！已上傳 ${done} 張照片`;
+    selectedFiles = [];
+    previewList.innerHTML = '';
+    fileInput.value = '';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-venue').value = '';
+    document.getElementById('f-datetime').value = '';
+    uploadBtn.disabled = false;
+  });
+
+  async function uploadToCloudinary(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if(!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  // ===== 照片列表 / 刪除 =====
+  const photoGrid = document.getElementById('photo-grid');
+  const emptyNote = document.getElementById('empty-note');
+  const filterRow = document.getElementById('filter-row');
+  let currentFilter = 'all';
+  let allPhotos = [];
+  let syncStarted = false;
+
+  filterRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    [...filterRow.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.cat;
+    renderPhotoList();
+  });
+
+  function startPhotoSync(){
+    if(syncStarted) return;
+    syncStarted = true;
+    const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      allPhotos = [];
+      snapshot.forEach(docSnap => allPhotos.push({ id: docSnap.id, ...docSnap.data() }));
+      renderPhotoList();
+    });
+  }
+
+  const CAT_LABEL = { stage: '舞台之上', airport: '直擊現場', fanmeet: '近距離' };
+
+  function renderPhotoList(){
+    const items = currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter);
+    photoGrid.innerHTML = '';
+    emptyNote.style.display = items.length ? 'none' : 'block';
+    items.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'photo-item';
+      el.innerHTML = `
+        <div class="thumb"><img src="${p.url}" loading="lazy"></div>
+        <div class="info">
+          <div class="cat">${CAT_LABEL[p.category] || p.category}</div>
+          <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
+          <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
+        </div>
+        <button class="del" data-id="${p.id}">刪除</button>
+      `;
+      photoGrid.appendChild(el);
+    });
+    photoGrid.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(!confirm('確定要刪除這張照片嗎？(僅移除網站上的紀錄,Cloudinary 圖床上的原始檔不會自動刪除)')) return;
+        await deleteDoc(doc(db, 'photos', btn.dataset.id));
+      });
+    });
+  }
+
+  function escapeHTML(str){
+    return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+</script>
+
+</body>
+</html>
