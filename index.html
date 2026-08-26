@@ -547,9 +547,9 @@
         ? items.map(cellHTML).join('')
         : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
     });
-
-    if (coverPreview && all.length){
-      coverPreview.innerHTML = all.slice(0, 3).map(p =>
+if (coverPreview && all.length){
+  const shuffled = [...all].sort(() => Math.random() - 0.5);
+  coverPreview.innerHTML = shuffled.slice(0, 6).map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
       ).join('');
     }
