@@ -210,6 +210,10 @@
         <input type="text" id="f-link" placeholder="例如：https://youtube.com/...">
         </div>
         <div class="field full">
+          <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
+          <input type="text" id="f-tags" placeholder="例如：首爾, 簽售服裝, 安可舞台">
+        </div>
+        <div class="field full">
           <button class="btn-block" id="upload-btn">上傳照片</button>
           <div class="progress" id="upload-progress"></div>
         </div>
@@ -267,6 +271,10 @@
     <div class="field">
       <label>影片連結</label>
       <input type="text" id="e-link">
+    </div>
+    <div class="field">
+      <label>標籤(用逗號分隔)</label>
+      <input type="text" id="e-tags">
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="edit-cancel">取消</button>
@@ -375,6 +383,7 @@
     const equipment = document.getElementById('f-equipment').value.trim();
     const seat = document.getElementById('f-seat').value.trim();
     const link = document.getElementById('f-link').value.trim();
+    const tags = parseTagsInput(document.getElementById('f-tags').value);
 
     uploadBtn.disabled = true;
     let done = 0;
@@ -385,7 +394,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, datetime, title, venue, equipment, seat, link,
+          url, category, datetime, title, venue, equipment, seat, link, tags,
           createdAt: serverTimestamp()
         });
         done++;
@@ -406,8 +415,19 @@
     document.getElementById('f-seat').value = '';
     document.getElementById('f-link').value = '';
     document.getElementById('f-datetime').value = '';
+    document.getElementById('f-tags').value = '';
     uploadBtn.disabled = false;
   });
+
+  // 把「首爾, #簽售服裝，安可舞台」這種輸入字串轉成乾淨的標籤陣列（去掉多餘的#、空白、重複、支援中英文逗號）
+  function parseTagsInput(raw){
+    if(!raw) return [];
+    return Array.from(new Set(
+      raw.split(/[,，]/)
+        .map(t => t.trim().replace(/^#+/, ''))
+        .filter(Boolean)
+    ));
+  }
 
   // Cloudinary 免費方案單檔上限 10MB，這裡抓 9.5MB 當安全門檻
   const MAX_UPLOAD_BYTES = 9.5 * 1024 * 1024;
@@ -513,6 +533,7 @@
           <div class="cat">${CAT_LABEL[p.category] || p.category}</div>
           <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
+          ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
         </div>
         <div class="btn-row">
           <button class="edit" data-id="${p.id}">編輯</button>
@@ -541,6 +562,7 @@
   const eEquipment = document.getElementById('e-equipment');
   const eSeat = document.getElementById('e-seat');
     const eLink = document.getElementById('e-link');
+  const eTags = document.getElementById('e-tags');
   const editSaveBtn = document.getElementById('edit-save');
   const editCancelBtn = document.getElementById('edit-cancel');
   let editingId = null;
@@ -556,6 +578,7 @@
     eEquipment.value = p.equipment || '';
     eSeat.value = p.seat || '';
     eLink.value = p.link || '';
+    eTags.value = (p.tags || []).join(', ');
     editOverlay.classList.add('open');
   }
 
@@ -579,7 +602,8 @@
         venue: eVenue.value.trim(),
          equipment: eEquipment.value.trim(),
         seat: eSeat.value.trim(),
-        link: eLink.value.trim()
+        link: eLink.value.trim(),
+        tags: parseTagsInput(eTags.value)
       });
       closeEditModal();
     }catch(err){
