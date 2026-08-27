@@ -512,8 +512,8 @@
   <div>
     <h3>拍攝紀錄</h3>
     <ul>
-      <li>更新年份 — 2024-2026</li>
-      <li>累積場次 — 21 場</li>
+      <li>更新年份 — <span id="stat-years">—</span></li>
+      <li>累積場次 — <span id="stat-events">—</span> 場</li>
       <li>足跡城市 — 台北 / 高雄 / 台中</li>
     </ul>
   </div>
@@ -777,10 +777,41 @@ if (coverPreview && all.length){
 
     renderTagFilter(all);
     applyTagFilter();
+    updateColophonStats(all);
     bindLightbox();
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
   });
+
+  // ===== 拍攝紀錄：更新年份 / 累積場次 自動計算 =====
+  // 從 datetime 欄位裡盡量找出年份，支援 "2026.07.18"、"'24.08.17 19:42"、"24.08.17" 等常見寫法
+  function extractYear(str){
+    if(!str) return null;
+    let m = str.match(/(20\d{2})/);
+    if(m) return parseInt(m[1], 10);
+    m = str.match(/'(\d{2})\b/);
+    if(m) return 2000 + parseInt(m[1], 10);
+    m = str.match(/^\s*(\d{2})[.\-\/]/);
+    if(m) return 2000 + parseInt(m[1], 10);
+    return null;
+  }
+
+  function updateColophonStats(all){
+    const statYearsEl = document.getElementById('stat-years');
+    const statEventsEl = document.getElementById('stat-events');
+    const currentYear = new Date().getFullYear();
+
+    const years = all.map(p => extractYear(p.datetime)).filter(y => y !== null);
+    const minYear = years.length ? Math.min(...years) : currentYear;
+    if (statYearsEl){
+      statYearsEl.textContent = minYear < currentYear ? `${minYear}-${currentYear}` : `${currentYear}`;
+    }
+
+    const eventTitles = new Set(all.map(p => (p.title || '').trim()).filter(Boolean));
+    if (statEventsEl){
+      statEventsEl.textContent = eventTitles.size;
+    }
+  }
 
   // ===== 標籤篩選 =====
   let currentTagFilter = 'all';
