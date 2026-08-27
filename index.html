@@ -138,11 +138,6 @@
   
   .cover-bottom .frame{ position:relative; overflow:hidden; flex:0 0 auto; width:240px; height:100%; }
 .cover-bottom .frame img{ object-fit:cover; }
-.fancam-item img,
-.spread .big img,
-.spread .small img,
-.grid3 .cell img,
-.diary-photo img{ object-fit:cover; }
 @media (max-width:640px){ .cover-bottom .frame{ width:170px; } }
 
   /* ===== FLASH PLACEHOLDER LOOK ===== */
@@ -258,6 +253,27 @@
     font-family:var(--mono); font-size:12px; color:var(--ink-faint);
     letter-spacing:0.06em; border:1px dashed var(--line);
   }
+
+  /* ===== TAG FILTER ===== */
+  .tag-filter-wrap{ padding:36px 0; }
+  .tag-filter-label{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.1em;
+    color:var(--ink-faint); text-transform:uppercase; margin-bottom:14px;
+  }
+  .tag-filter{ display:flex; flex-wrap:wrap; gap:10px; }
+  .tag-filter button{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.03em;
+    background:transparent; border:1px solid var(--line-strong); color:var(--ink-dim);
+    padding:8px 16px; cursor:pointer; transition:all .2s; border-radius:2px;
+  }
+  .tag-filter button:hover{ border-color:var(--press); color:var(--press); }
+  .tag-filter button.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .tag-hidden{ display:none !important; }
+  .tag-empty-note{
+    padding:40px 20px; text-align:center; font-family:var(--mono); font-size:12px;
+    color:var(--ink-faint); letter-spacing:0.06em; border:1px dashed var(--line); display:none;
+  }
+  .tag-empty-note.show{ display:block; }
 
   .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
   .reveal.in{ opacity:1; transform:translateY(0); }
@@ -412,6 +428,15 @@
 
 </section>
 
+<!-- ===== TAG FILTER ===== -->
+<section id="tag-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none;">
+  <div class="tag-filter-label">篩選 · Filter by Tag</div>
+  <div class="tag-filter" id="tag-filter">
+    <button data-tag="all" class="active">全部</button>
+  </div>
+  <div class="tag-empty-note" id="tag-empty-note">目前這個標籤還沒有照片</div>
+</section>
+
 <!-- ===== 01 STAGE ===== -->
 <section id="stage" class="wrap">
   <div class="section-head reveal">
@@ -502,7 +527,7 @@
     <a href="https://www.threads.com/@_chen_mm?xmt=AQG0XL5ZPZwBPDWuNtB2rXyQbXmy9UkTWzZO9RGz3M5fXsU">Threads @_chen_mm</a>
     <a href="https://www.instagram.com/_chen_mm/">INSTAGRAM @_chen_mm</a>
     <a href="https://www.youtube.com/@chen_mm-e8b">YOUTUBE @_chen_mm</a>
-    <a href="mailto:jich6625@gmail.com">jich6625@gmail.com</a>
+    <a href="jich6625@gmail.com">jich6625@gmail.com</a>
     <a href="#">相簿全紀錄 → Google Drive</a>
   </div>
 </section>
@@ -614,8 +639,9 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
   function fancamCellHTML(p){
+    const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener">
+      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         <div class="fancam-play">▶</div>
         ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
@@ -674,8 +700,10 @@
   function albumCellHTML(photos, albumIndex){
     const cover = photos[0];
     const flashClass = FLASH_CLASS[cover.category] || 'flash-stage';
+    const unionTags = Array.from(new Set(photos.flatMap(ph => ph.tags || [])));
+    const tagsAttr = escapeHTML(unionTags.join(','));
     return `
-      <div class="cell flash ${flashClass}" data-album-index="${albumIndex}">
+      <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}">
         <img src="${escapeHTML(cover.url)}" loading="lazy" alt="${escapeHTML(cover.title || '')}">
         <div class="album-badge">📷 ${photos.length} 張</div>
         ${cover.datetime ? `<div class="stamp">${escapeHTML(cover.datetime)}</div>` : ''}
@@ -686,8 +714,9 @@
     function cellHTML(p){
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const hasCaption = p.title || p.venue;
+    const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}">
+      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
@@ -746,10 +775,60 @@ if (coverPreview && all.length){
       if (ctEl) ctEl.textContent = prefix + ' · ' + (byCategory[cat] ? byCategory[cat].length : 0) + ' 張精選';
     });
 
+    renderTagFilter(all);
+    applyTagFilter();
     bindLightbox();
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
   });
+
+  // ===== 標籤篩選 =====
+  let currentTagFilter = 'all';
+  const tagFilterWrap = document.getElementById('tag-filter-wrap');
+  const tagFilterEl = document.getElementById('tag-filter');
+  const tagEmptyNote = document.getElementById('tag-empty-note');
+
+  function renderTagFilter(all){
+    const tagSet = new Set();
+    all.forEach(p => (p.tags || []).forEach(t => t && tagSet.add(t)));
+
+    if (!tagSet.size){
+      tagFilterWrap.style.display = 'none';
+      return;
+    }
+    tagFilterWrap.style.display = '';
+    const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    tagFilterEl.innerHTML = '<button data-tag="all" class="' + (currentTagFilter === 'all' ? 'active' : '') + '">全部</button>' +
+      tags.map(t => `<button data-tag="${escapeHTML(t)}" class="${currentTagFilter === t ? 'active' : ''}">#${escapeHTML(t)}</button>`).join('');
+
+    if (!tagFilterEl.dataset.bound){
+      tagFilterEl.dataset.bound = '1';
+      tagFilterEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        currentTagFilter = btn.dataset.tag;
+        tagFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyTagFilter();
+      });
+    }
+  }
+
+  function applyTagFilter(){
+    let visibleCount = 0;
+    document.querySelectorAll('#stage-grid [data-tags], #airport-grid [data-tags], #fanmeet-grid [data-tags], #fancam-grid [data-tags]').forEach(el => {
+      if (currentTagFilter === 'all'){
+        el.classList.remove('tag-hidden');
+        visibleCount++;
+        return;
+      }
+      const tags = (el.dataset.tags || '').split(',').filter(Boolean);
+      const match = tags.includes(currentTagFilter);
+      el.classList.toggle('tag-hidden', !match);
+      if (match) visibleCount++;
+    });
+    tagEmptyNote.classList.toggle('show', currentTagFilter !== 'all' && visibleCount === 0);
+  }
   </script>
   <script>
   document.getElementById('nav-toggle').addEventListener('click', () => {
