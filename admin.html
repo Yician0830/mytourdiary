@@ -37,7 +37,18 @@
   }
   .login-card h1{ margin-bottom:6px; font-size:clamp(16px,3vw,26px); white-space:nowrap; }
   .login-card p{ font-size:13px; color:var(--ink-dim); margin-bottom:28px; }
-  .field{ text-align:left; margin-bottom:16px; }
+  .field{ text-align:left; margin-bottom:16px; position:relative; }
+  .autocomplete-list{
+    position:absolute; top:100%; left:0; right:0; z-index:50;
+    background:#fff; border:1px solid var(--line-strong); border-top:none;
+    max-height:160px; overflow-y:auto; display:none;
+  }
+  .autocomplete-list.show{ display:block; }
+  .autocomplete-list button{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    padding:9px 12px; font-family:var(--sans); font-size:13px; color:var(--ink); cursor:pointer;
+  }
+  .autocomplete-list button:hover{ background:var(--paper-2); }
   .field label{ display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.05em; color:var(--ink-dim); margin-bottom:6px; text-transform:uppercase; }
   .field input, .field select{
     width:100%; padding:11px 12px; border:1px solid var(--line-strong); background:var(--paper);
@@ -211,7 +222,8 @@
         </div>
         <div class="field full">
           <label>藝人</label>
-          <input type="text" id="f-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人">
+          <input type="text" id="f-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
+        <div class="autocomplete-list" id="f-artist-list"></div>
         </div>
         <div class="field full">
           <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
@@ -278,7 +290,8 @@
     </div>
     <div class="field">
       <label>藝人</label>
-      <input type="text" id="e-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人">
+      <input type="text" id="e-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
+      <div class="autocomplete-list" id="e-artist-list"></div>
     </div>
     <div class="field">
       <label>標籤(用逗號分隔)</label>
@@ -531,12 +544,36 @@
   }
 
   // 把出現過的藝人名稱都收進 datalist,輸入欄位就能下拉選擇之前用過的名字
+  let knownArtists = [];
+
   function renderArtistDatalist(){
     const artistDatalist = document.getElementById('artist-datalist');
-    const artists = Array.from(new Set(allPhotos.map(p => p.artist).filter(Boolean)))
+    knownArtists = Array.from(new Set(allPhotos.map(p => p.artist).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-    artistDatalist.innerHTML = artists.map(a => `<option value="${escapeHTML(a)}">`).join('');
+    artistDatalist.innerHTML = knownArtists.map(a => `<option value="${escapeHTML(a)}">`).join('');
   }
+
+  function setupArtistAutocomplete(inputEl, listEl){
+    function renderList(){
+      const q = inputEl.value.trim().toLowerCase();
+      const matches = knownArtists.filter(a => !q || a.toLowerCase().includes(q));
+      if (!matches.length){ listEl.classList.remove('show'); listEl.innerHTML = ''; return; }
+      listEl.innerHTML = matches.map(a => `<button type="button">${escapeHTML(a)}</button>`).join('');
+      listEl.classList.add('show');
+    }
+    inputEl.addEventListener('focus', renderList);
+    inputEl.addEventListener('input', renderList);
+    inputEl.addEventListener('blur', () => setTimeout(() => listEl.classList.remove('show'), 150));
+    listEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      inputEl.value = btn.textContent;
+      listEl.classList.remove('show');
+    });
+  }
+
+  setupArtistAutocomplete(document.getElementById('f-artist'), document.getElementById('f-artist-list'));
+  setupArtistAutocomplete(document.getElementById('e-artist'), document.getElementById('e-artist-list'));
 
   const CAT_LABEL = { stage: '舞台焦點', airport: '飛行日記', fanmeet: '近距離', fancam: '直拍精選' };
 

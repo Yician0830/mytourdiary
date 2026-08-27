@@ -451,19 +451,19 @@
 
 </section>
 
-<!-- ===== TAG FILTER ===== -->
-<section id="tag-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none;">
-  <div class="tag-filter-label">篩選 · Filter by Tag</div>
-  <div class="tag-filter" id="tag-filter">
-    <button data-tag="all" class="active">全部</button>
-  </div>
-</section>
-
 <!-- ===== ARTIST FILTER ===== -->
-<section id="artist-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none; padding-top:0;">
+<section id="artist-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none;">
   <div class="tag-filter-label">篩選 · Filter by Artist</div>
   <div class="tag-filter" id="artist-filter">
     <button data-artist="all" class="active">全部</button>
+  </div>
+</section>
+
+<!-- ===== TAG FILTER ===== -->
+<section id="tag-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none; padding-top:0;">
+  <div class="tag-filter-label">篩選 · Filter by Tag</div>
+  <div class="tag-filter" id="tag-filter">
+    <button data-tag="all" class="active">全部</button>
   </div>
   <div class="tag-empty-note" id="tag-empty-note">目前這個篩選條件下還沒有照片</div>
 </section>
@@ -832,6 +832,7 @@
 
   const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
 
+  let latestAllPhotos = [];
   onSnapshot(q, (snapshot) => {
     const all = [];
     const byCategory = { stage: [], airport: [], fanmeet: [], fancam: [] };
@@ -882,6 +883,7 @@ if (coverPreview && all.length){
       if (ctEl) ctEl.textContent = prefix + ' · ' + (byCategory[cat] ? byCategory[cat].length : 0) + ' 張精選';
     });
 
+    latestAllPhotos = all;
     renderTagFilter(all);
     renderArtistFilter(all);
     applyFilters();
@@ -928,8 +930,12 @@ if (coverPreview && all.length){
   const tagEmptyNote = document.getElementById('tag-empty-note');
 
   function renderTagFilter(all){
+    const scoped = currentArtistFilter === 'all' ? all : all.filter(p => (p.artist || '') === currentArtistFilter);
     const tagSet = new Set();
-    all.forEach(p => (p.tags || []).forEach(t => t && tagSet.add(t)));
+    scoped.forEach(p => (p.tags || []).forEach(t => t && tagSet.add(t)));
+    if (currentTagFilter !== 'all' && !tagSet.has(currentTagFilter)) {
+      currentTagFilter = 'all';
+    }
 
     if (!tagSet.size){
       tagFilterWrap.style.display = 'none';
@@ -979,6 +985,7 @@ if (coverPreview && all.length){
         currentArtistFilter = btn.dataset.artist;
         artistFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        renderTagFilter(latestAllPhotos);
         applyFilters();
       });
     }
