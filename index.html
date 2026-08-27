@@ -135,6 +135,14 @@
   .flash-stage::before{ background:radial-gradient(circle at 50% 30%, rgba(190,150,255,0.55), rgba(70,40,110,0.15) 40%, rgba(5,4,10,0.7) 80%); }
   .flash-airport::before{ background:radial-gradient(circle at 55% 45%, rgba(255,255,255,0.45), rgba(120,120,120,0.1) 42%, rgba(10,10,10,0.65) 82%); }
   .flash-meet::before{ background:radial-gradient(circle at 45% 40%, rgba(255,214,170,0.5), rgba(120,70,40,0.12) 42%, rgba(10,7,4,0.68) 82%); }
+.flash-fancam::before{ background:radial-gradient(circle at 50% 35%, rgba(120,200,255,0.5), rgba(30,70,110,0.15) 40%, rgba(4,8,10,0.7) 82%); }
+.fancam-item{ aspect-ratio:3/4; position:relative; overflow:hidden; display:block; }
+.fancam-play{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:44px; height:44px; border-radius:50%; background:rgba(21,19,15,0.55);
+  display:flex; align-items:center; justify-content:center; z-index:3;
+  color:#fff; font-size:16px; pointer-events:none;
+}
 
   .placeholder-mark{
     position:absolute; inset:0; z-index:2;
@@ -316,6 +324,7 @@
     <a href="#stage">舞台</a>
     <a href="#airport">機場</a>
     <a href="#fanmeet">見面會</a>
+    <a href="#fancam">直拍</a>
     <a href="#contact">聯絡</a>
   </div>
 </nav>
@@ -362,6 +371,9 @@
   </div>
   <div class="toc-row">
     <div class="pg">P. 03</div><div class="ti">零距離 — Face to Face</div><div class="dots"></div><div class="ct">見面會 / 簽售 · 11 張精選</div>
+  </div>
+  <div class="toc-row">
+    <div class="pg">P. 04</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
   </div>
 
 </section>
@@ -412,7 +424,17 @@
     <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
   </div>
 </section>
-
+  
+<!-- ===== 04 FANCAM ===== -->
+<section id="fancam" class="wrap">
+  <div class="section-head reveal">
+    <div><div class="num">04 — Fancam</div><h2>直拍精選</h2></div>
+    <div class="desc">點擊封面前往觀看完整影片。</div>
+  </div>
+  <div class="grid3 reveal" id="fancam-grid">
+    <div class="empty-note">尚未上傳直拍影片</div>
+  </div>
+</section>
 <!-- ===== COLOPHON ===== -->
 <div class="wrap">
 <div class="colophon reveal">
@@ -533,11 +555,20 @@
     stage:   document.getElementById('stage-grid'),
     airport: document.getElementById('airport-grid'),
     fanmeet: document.getElementById('fanmeet-grid'),
+    fancam:  document.getElementById('fancam-grid'),
   };
   const coverPreview = document.getElementById('cover-preview');
 
   function escapeHTML(str){
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+  function fancamCellHTML(p){
+    return `
+      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener">
+        <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
+        <div class="fancam-play">▶</div>
+        ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
+      </a>`;
   }
 
     function cellHTML(p){
@@ -555,7 +586,7 @@
 
   onSnapshot(q, (snapshot) => {
     const all = [];
-    const byCategory = { stage: [], airport: [], fanmeet: [] };
+    const byCategory = { stage: [], airport: [], fanmeet: [], fancam: [] };
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       all.push(data);
@@ -570,8 +601,9 @@ Object.entries(grids).forEach(([cat, el]) => {
     const dateB = (b.datetime || '').replace(/[^0-9]/g, '');
     return dateB.localeCompare(dateA);
   });
-  el.innerHTML = items.length
-        ? items.map(cellHTML).join('')
+   const render = cat === 'fancam' ? fancamCellHTML : cellHTML;
+      el.innerHTML = items.length
+        ? items.map(render).join('')
         : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
     });
 if (coverPreview && all.length){
