@@ -342,7 +342,30 @@
     opacity:0; pointer-events:none; transition:opacity .3s ease; padding:40px;
   }
   .lightbox.open{ opacity:1; pointer-events:auto; }
-  .lightbox-inner{ max-width:760px; width:100%; }
+  .lightbox-inner{ max-width:760px; width:100%; position:relative; }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(21,19,15,0.55); color:#f4f2ec;
+    display:none; align-items:center; justify-content:center;
+    font-size:22px; line-height:1; cursor:pointer; z-index:5;
+    user-select:none; -webkit-user-select:none; transition:background .2s;
+  }
+  .lightbox-nav:hover{ background:rgba(204,32,54,0.75); }
+  .lightbox-prev{ left:-8px; }
+  .lightbox-next{ right:-8px; }
+  @media (max-width:820px){
+    .lightbox-nav{ width:38px; height:38px; font-size:18px; }
+    .lightbox-prev{ left:6px; }
+    .lightbox-next{ right:6px; }
+  }
+  .lightbox-counter{
+    display:none;
+    position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+    font-family:var(--mono); font-size:11px; color:#cfc9ba;
+    background:rgba(21,19,15,0.55); padding:3px 10px; letter-spacing:0.04em;
+    z-index:5; white-space:nowrap;
+  }
   .album-badge{
     position:absolute; top:10px; right:10px; z-index:3;
     background:rgba(21,19,15,0.7); color:#f4f2ec;
@@ -541,6 +564,9 @@
 <div class="lightbox" id="lightbox">
   <div class="lightbox-close" id="lightboxClose">關閉 ✕</div>
   <div class="lightbox-inner">
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+    <div class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</div>
+    <div class="lightbox-nav lightbox-next" id="lightboxNext">›</div>
     <div class="lightbox-frame" id="lightboxFrame"></div>
     <div class="lightbox-cap"><span id="lightboxTitle"></span><span id="lightboxMeta"></span></div>
       <div class="lightbox-extra" id="lightboxExtra"></div>
@@ -579,6 +605,7 @@
           window.openAlbumModal(Number(f.dataset.albumIndex));
           return;
         }
+        window.lightboxGroup = null;
         const flashClass = [...f.classList].find(c=>c.startsWith('flash-')) || '';
         lbFrame.className = 'lightbox-frame flash ' + flashClass;
         const img = f.querySelector('img');
@@ -593,14 +620,20 @@
         if (f.dataset.seat) extraLines.push('座位：' + f.dataset.seat);
         document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
         lightbox.classList.add('open');
+        if (window.updateLightboxNav) window.updateLightboxNav();
       });
     });
   }
     bindLightbox();
 
-  document.getElementById('lightboxClose').addEventListener('click', ()=> lightbox.classList.remove('open'));
-  lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) lightbox.classList.remove('open'); });
-  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') lightbox.classList.remove('open'); });
+  function closeLightbox(){
+    lightbox.classList.remove('open');
+    window.lightboxGroup = null;
+    if (window.updateLightboxNav) window.updateLightboxNav();
+  }
+  document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeLightbox(); });
 </script>
 
 <!-- ===== FIREBASE：即時讀取站主上傳的照片（公開頁面只讀,不能寫入） ===== -->
@@ -649,6 +682,72 @@
   }
 
     let currentAlbums = [];
+  window.lightboxGroup = null;
+  window.lightboxIndex = 0;
+
+  function showLightboxPhoto(p){
+    const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
+    const lbFrameEl = document.getElementById('lightboxFrame');
+    lbFrameEl.className = 'lightbox-frame flash ' + flashClass;
+    lbFrameEl.innerHTML = '<img src="' + p.url + '">';
+    document.getElementById('lightboxTitle').textContent = p.title || '';
+    document.getElementById('lightboxMeta').textContent = (p.datetime ? p.datetime + '  ·  ' : '') + (p.venue || '');
+    const extraLines = [];
+    if (p.equipment) extraLines.push('拍攝設備：' + p.equipment);
+    if (p.seat) extraLines.push('座位：' + p.seat);
+    document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+    window.updateLightboxNav();
+  }
+
+  window.updateLightboxNav = function(){
+    const prevBtn = document.getElementById('lightboxPrev');
+    const nextBtn = document.getElementById('lightboxNext');
+    const counterEl = document.getElementById('lightboxCounter');
+    const group = window.lightboxGroup;
+    if (group && group.length > 1){
+      prevBtn.style.display = 'flex';
+      nextBtn.style.display = 'flex';
+      counterEl.style.display = 'block';
+      counterEl.textContent = (window.lightboxIndex + 1) + ' / ' + group.length;
+    } else {
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      counterEl.style.display = 'none';
+    }
+  };
+
+  window.lightboxGoTo = function(newIndex){
+    const group = window.lightboxGroup;
+    if (!group) return;
+    const len = group.length;
+    window.lightboxIndex = (newIndex + len) % len;
+    showLightboxPhoto(group[window.lightboxIndex]);
+  };
+  window.lightboxNext = function(){ window.lightboxGoTo(window.lightboxIndex + 1); };
+  window.lightboxPrev = function(){ window.lightboxGoTo(window.lightboxIndex - 1); };
+
+  document.getElementById('lightboxPrev').addEventListener('click', (e)=>{ e.stopPropagation(); window.lightboxPrev(); });
+  document.getElementById('lightboxNext').addEventListener('click', (e)=>{ e.stopPropagation(); window.lightboxNext(); });
+
+  (function(){
+    let touchStartX = null;
+    const frameEl = document.getElementById('lightboxFrame');
+    frameEl.addEventListener('touchstart', (e)=>{ touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+    frameEl.addEventListener('touchend', (e)=>{
+      if (touchStartX === null) return;
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (Math.abs(dx) > 40){
+        if (dx < 0) window.lightboxNext(); else window.lightboxPrev();
+      }
+      touchStartX = null;
+    });
+  })();
+
+  document.addEventListener('keydown', (e)=>{
+    if (!document.getElementById('lightbox').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') window.lightboxPrev();
+    if (e.key === 'ArrowRight') window.lightboxNext();
+  });
 
   window.openAlbumModal = function(idx){
     const group = currentAlbums[idx];
@@ -670,17 +769,9 @@
         const img = e.target.closest('img');
         if (!img) return;
         const grp = currentAlbums[img.dataset.albumIdx];
-        const p = grp[img.dataset.photoIdx];
-        const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
-        const lbFrame = document.getElementById('lightboxFrame');
-        lbFrame.className = 'lightbox-frame flash ' + flashClass;
-        lbFrame.innerHTML = '<img src="' + p.url + '">';
-        document.getElementById('lightboxTitle').textContent = p.title || '';
-        document.getElementById('lightboxMeta').textContent = (p.datetime ? p.datetime + '  ·  ' : '') + (p.venue || '');
-        const extraLines = [];
-        if (p.equipment) extraLines.push('拍攝設備：' + p.equipment);
-        if (p.seat) extraLines.push('座位：' + p.seat);
-        document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+        window.lightboxGroup = grp;
+        window.lightboxIndex = Number(img.dataset.photoIdx);
+        showLightboxPhoto(grp[window.lightboxIndex]);
         albumModal.classList.remove('open');
         document.getElementById('lightbox').classList.add('open');
       });
