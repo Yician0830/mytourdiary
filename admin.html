@@ -379,9 +379,11 @@
     uploadBtn.disabled = true;
     let done = 0;
     for(const file of selectedFiles){
-      uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
+      uploadProgress.textContent = `處理中… (${done + 1}/${selectedFiles.length})`;
       try{
-        const url = await uploadToCloudinary(file);
+        const uploadFile = await compressImageIfNeeded(file);
+        uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
+        const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
           url, category, datetime, title, venue, equipment, seat, link,
           createdAt: serverTimestamp()
@@ -406,6 +408,51 @@
     document.getElementById('f-datetime').value = '';
     uploadBtn.disabled = false;
   });
+
+  // Cloudinary 免費方案單檔上限 10MB，這裡抓 9.5MB 當安全門檻
+  const MAX_UPLOAD_BYTES = 9.5 * 1024 * 1024;
+
+  // 如果照片超過門檻，用 canvas 自動等比例縮小 + 壓縮畫質，直到符合大小限制
+  async function compressImageIfNeeded(file){
+    if(file.size <= MAX_UPLOAD_BYTES) return file;
+
+    const imgBitmap = await loadImage(file);
+    let { width, height } = imgBitmap;
+    let quality = 0.9;
+    let scale = 1;
+    let blob = file;
+
+    // 先嘗試單純降畫質，最多嘗試 6 次；若還是太大，再逐步縮小尺寸
+    for(let attempt = 0; attempt < 10; attempt++){
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgBitmap, 0, 0, canvas.width, canvas.height);
+      blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+
+      if(!blob) break;
+      if(blob.size <= MAX_UPLOAD_BYTES) break;
+
+      if(quality > 0.5){
+        quality -= 0.1;
+      } else {
+        scale *= 0.85;
+      }
+    }
+
+    const originalName = file.name.replace(/\.[^.]+$/, '');
+    return new File([blob], originalName + '.jpg', { type: 'image/jpeg' });
+  }
+
+  function loadImage(file){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
   async function uploadToCloudinary(file){
     const formData = new FormData();
