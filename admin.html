@@ -182,6 +182,7 @@
             <option value="stage">舞台焦點 On Stage</option>
             <option value="airport">飛行日記 Candid</option>
             <option value="fanmeet">近距離 Face to Face</option>
+            <option value="fancam">直拍精選 Fancam</option>
           </select>
         </div>
         <div class="field">
@@ -203,6 +204,10 @@
       <div class="field">
         <label>座位</label>
         <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
+          </div>
+      <div class="field">
+        <label>影片連結(直拍才需要填)</label>
+        <input type="text" id="f-link" placeholder="例如：https://youtube.com/...">
         </div>
         <div class="field full">
           <button class="btn-block" id="upload-btn">上傳照片</button>
@@ -235,6 +240,7 @@
         <option value="stage">舞台之上 On Stage</option>
         <option value="airport">直擊現場 Candid</option>
         <option value="fanmeet">近距離 Face to Face</option>
+        <option value="fancam">直拍精選 Fancam</option>
       </select>
     </div>
     <div class="field">
@@ -256,6 +262,10 @@
     <div class="field">
       <label>座位</label>
       <input type="text" id="e-seat">
+       </div>
+    <div class="field">
+      <label>影片連結</label>
+      <input type="text" id="e-link">
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="edit-cancel">取消</button>
@@ -363,6 +373,7 @@
     const venue = document.getElementById('f-venue').value.trim();
     const equipment = document.getElementById('f-equipment').value.trim();
     const seat = document.getElementById('f-seat').value.trim();
+    const link = document.getElementById('f-link').value.trim();
 
     uploadBtn.disabled = true;
     let done = 0;
@@ -371,7 +382,7 @@
       try{
         const url = await uploadToCloudinary(file);
         await addDoc(collection(db, 'photos'), {
-          url, category, datetime, title, venue, equipment, seat,
+          url, category, datetime, title, venue, equipment, seat, link,
           createdAt: serverTimestamp()
         });
         done++;
@@ -390,6 +401,7 @@
      document.getElementById('f-venue').value = '';
     document.getElementById('f-equipment').value = '';
     document.getElementById('f-seat').value = '';
+    document.getElementById('f-link').value = '';
     document.getElementById('f-datetime').value = '';
     uploadBtn.disabled = false;
   });
@@ -477,6 +489,7 @@
   const eVenue = document.getElementById('e-venue');
   const eEquipment = document.getElementById('e-equipment');
   const eSeat = document.getElementById('e-seat');
+    const eLink = document.getElementById('e-link');
   const editSaveBtn = document.getElementById('edit-save');
   const editCancelBtn = document.getElementById('edit-cancel');
   let editingId = null;
@@ -491,6 +504,7 @@
     eVenue.value = p.venue || '';
     eEquipment.value = p.equipment || '';
     eSeat.value = p.seat || '';
+    eLink.value = p.link || '';
     editOverlay.classList.add('open');
   }
 
@@ -512,8 +526,9 @@
         datetime: eDatetime.value.trim(),
         title: eTitle.value.trim(),
         venue: eVenue.value.trim(),
-        equipment: eEquipment.value.trim(),
-        seat: eSeat.value.trim()
+         equipment: eEquipment.value.trim(),
+        seat: eSeat.value.trim(),
+        link: eLink.value.trim()
       });
       closeEditModal();
     }catch(err){
