@@ -297,6 +297,7 @@
   .lightbox-inner{ max-width:760px; width:100%; }
   .lightbox-frame{ aspect-ratio:4/5; max-height:70vh; width:auto; margin:0 auto; position:relative; overflow:hidden; }
   .lightbox-cap{ display:flex; justify-content:space-between; margin-top:18px; font-family:var(--mono); font-size:11px; color:#cfc9ba; }
+  .lightbox-extra{ margin-top:10px; font-family:var(--mono); font-size:11px; color:#9c9284; line-height:1.8; }
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
@@ -461,6 +462,7 @@
   <div class="lightbox-inner">
     <div class="lightbox-frame" id="lightboxFrame"></div>
     <div class="lightbox-cap"><span id="lightboxTitle"></span><span id="lightboxMeta"></span></div>
+      <div class="lightbox-extra" id="lightboxExtra"></div>
   </div>
 </div>
 
@@ -491,8 +493,12 @@
         const capTitle = f.querySelector('.cap-title');
         const capMeta = f.querySelector('.cap-meta');
         const stamp = f.querySelector('.stamp');
-        lbTitle.textContent = capTitle ? capTitle.textContent : '';
+                lbTitle.textContent = capTitle ? capTitle.textContent : '';
         lbMeta.textContent = (stamp ? stamp.textContent.replace(/&nbsp;/g,' ') + '  ·  ' : '') + (capMeta ? capMeta.textContent : '');
+        const extraLines = [];
+        if (f.dataset.equipment) extraLines.push('拍攝設備：' + f.dataset.equipment);
+        if (f.dataset.seat) extraLines.push('座位：' + f.dataset.seat);
+        document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
         lightbox.classList.add('open');
       });
     });
@@ -534,11 +540,11 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  function cellHTML(p){
+    function cellHTML(p){
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const hasCaption = p.title || p.venue;
     return `
-      <div class="cell flash ${flashClass}">
+      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
