@@ -224,6 +224,7 @@
         <button data-cat="stage">舞台</button>
         <button data-cat="airport">機場</button>
         <button data-cat="fanmeet">見面會</button>
+        <button data-cat="fancam">直拍</button>
       </div>
       <div class="photo-grid" id="photo-grid"></div>
       <div class="empty" id="empty-note" style="display:none;">目前這個分類還沒有照片</div>
@@ -447,7 +448,7 @@
     });
   }
 
-  const CAT_LABEL = { stage: '舞台焦點', airport: '飛行日記', fanmeet: '近距離' };
+  const CAT_LABEL = { stage: '舞台焦點', airport: '飛行日記', fanmeet: '近距離', fancam: '直拍精選' };
 
   function renderPhotoList(){
     const items = currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter);
