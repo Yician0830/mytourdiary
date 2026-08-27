@@ -121,14 +121,24 @@
   }
   .cover-lines span{ color:var(--press); font-weight:600; margin-right:6px; }
 
-  .cover-bottom{
-    display:grid; grid-template-columns:repeat(6,1fr); gap:2px;
-    height:34vh; min-height:220px;
-    border-top:1px solid var(--line);
-    border-bottom:1px solid var(--line);
-  }
-  @media (max-width:700px){ .cover-bottom{ grid-template-columns:repeat(2,1fr); height:auto; }}
-  .cover-bottom .frame{ position:relative; overflow:hidden; min-height:160px; }
+ .cover-bottom{
+  overflow:hidden;
+  height:34vh; min-height:220px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.cover-bottom-track{
+  display:flex; gap:2px; width:max-content;
+  animation:marquee 28s linear infinite;
+}
+.cover-bottom:hover .cover-bottom-track{ animation-play-state:paused; }
+@keyframes marquee{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-50%); }
+}
+  
+  .cover-bottom .frame{ position:relative; overflow:hidden; flex:0 0 auto; width:240px; height:100%; }
+@media (max-width:640px){ .cover-bottom .frame{ width:170px; } }
 
   /* ===== FLASH PLACEHOLDER LOOK ===== */
   .flash{ position:relative;  overflow:hidden; }
@@ -714,9 +724,10 @@ Object.entries(grids).forEach(([cat, el]) => {
 if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
-  coverPreview.innerHTML = shuffled.slice(0, 6).map(p =>
+    const framesHTML = shuffled.slice(0, 8).map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
       ).join('');
+  coverPreview.innerHTML = '<div class="cover-bottom-track">' + framesHTML + framesHTML + '</div>';
     }
 
     bindLightbox();
