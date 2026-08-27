@@ -57,7 +57,23 @@
     transition:color .2s;
   }
   .nav-links a:hover{ color:var(--press); }
-  @media (max-width:700px){ .nav-links{ display:none; } }
+  .nav-toggle{
+  display:none;
+  background:none; border:none; cursor:pointer;
+  font-family:var(--mono); font-size:20px; color:var(--ink); padding:4px 8px;
+}
+@media (max-width:700px){
+  .nav-links{
+    display:none;
+    position:absolute; top:100%; left:0; right:0;
+    background:var(--paper); border-bottom:1px solid var(--line);
+    flex-direction:column; gap:0; padding:10px 0;
+  }
+  .nav-links.open{ display:flex; }
+  .nav-links a{ padding:14px 20px; border-top:1px solid var(--line); }
+  .nav-links a:first-child{ border-top:none; }
+  .nav-toggle{ display:block; }
+}
 
   /* ===== COVER / HERO ===== */
   .cover{
@@ -292,7 +308,9 @@
 <body>
 
 <nav>
+  <nav style="position:relative;">
   <div class="nav-mark">_CHEMERA_DIARY</div>
+  <button class="nav-toggle" id="nav-toggle">☰</button>
   <div class="nav-links">
     <a href="#toc">目次</a>
     <a href="#stage">舞台</a>
@@ -561,6 +579,15 @@ if (coverPreview && all.length){
     bindLightbox();
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
+  });
+  <script>
+  document.getElementById('nav-toggle').addEventListener('click', () => {
+    document.querySelector('.nav-links').classList.toggle('open');
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.querySelector('.nav-links').classList.remove('open');
+    });
   });
 </script>
 
