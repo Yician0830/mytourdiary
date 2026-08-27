@@ -528,7 +528,7 @@
       f.style.cursor='pointer';
            f.addEventListener('click', ()=>{
         if (f.dataset.albumIndex !== undefined) {
-          openAlbumModal(Number(f.dataset.albumIndex));
+          window.openAlbumModal(Number(f.dataset.albumIndex));
           return;
         }
         const flashClass = [...f.classList].find(c=>c.startsWith('flash-')) || '';
@@ -549,41 +549,6 @@
     });
   }
     bindLightbox();
-
-  const albumModal = document.getElementById('albumModal');
-  const albumModalTitle = document.getElementById('albumModalTitle');
-  const albumModalGrid = document.getElementById('albumModalGrid');
-
-  function openAlbumModal(idx){
-    const group = currentAlbums[idx];
-    if (!group) return;
-    albumModalTitle.textContent = group[0].title || '';
-    albumModalGrid.innerHTML = group.map((p, i) =>
-      `<img src="${p.url}" loading="lazy" data-album-idx="${idx}" data-photo-idx="${i}">`
-    ).join('');
-    albumModal.classList.add('open');
-  }
-
-  document.getElementById('albumModalClose').addEventListener('click', ()=> albumModal.classList.remove('open'));
-  albumModal.addEventListener('click', (e)=>{ if(e.target === albumModal) albumModal.classList.remove('open'); });
-
-  albumModalGrid.addEventListener('click', (e)=>{
-    const img = e.target.closest('img');
-    if (!img) return;
-    const group = currentAlbums[img.dataset.albumIdx];
-    const p = group[img.dataset.photoIdx];
-    const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
-    lbFrame.className = 'lightbox-frame flash ' + flashClass;
-    lbFrame.innerHTML = '<img src="' + p.url + '">';
-    lbTitle.textContent = p.title || '';
-    lbMeta.textContent = (p.datetime ? p.datetime + '  ·  ' : '') + (p.venue || '');
-    const extraLines = [];
-    if (p.equipment) extraLines.push('拍攝設備：' + p.equipment);
-    if (p.seat) extraLines.push('座位：' + p.seat);
-    document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
-    albumModal.classList.remove('open');
-    lightbox.classList.add('open');
-  });
 
   document.getElementById('lightboxClose').addEventListener('click', ()=> lightbox.classList.remove('open'));
   lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) lightbox.classList.remove('open'); });
@@ -630,6 +595,43 @@
   }
 
     let currentAlbums = [];
+
+  window.openAlbumModal = function(idx){
+    const group = currentAlbums[idx];
+    if (!group) return;
+    const albumModalTitle = document.getElementById('albumModalTitle');
+    const albumModalGrid = document.getElementById('albumModalGrid');
+    const albumModal = document.getElementById('albumModal');
+    albumModalTitle.textContent = group[0].title || '';
+    albumModalGrid.innerHTML = group.map((p, i) =>
+      `<img src="${p.url}" loading="lazy" data-album-idx="${idx}" data-photo-idx="${i}">`
+    ).join('');
+    albumModal.classList.add('open');
+
+    if (!albumModal.dataset.bound) {
+      albumModal.dataset.bound = '1';
+      document.getElementById('albumModalClose').addEventListener('click', ()=> albumModal.classList.remove('open'));
+      albumModal.addEventListener('click', (e)=>{ if(e.target === albumModal) albumModal.classList.remove('open'); });
+      albumModalGrid.addEventListener('click', (e)=>{
+        const img = e.target.closest('img');
+        if (!img) return;
+        const grp = currentAlbums[img.dataset.albumIdx];
+        const p = grp[img.dataset.photoIdx];
+        const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
+        const lbFrame = document.getElementById('lightboxFrame');
+        lbFrame.className = 'lightbox-frame flash ' + flashClass;
+        lbFrame.innerHTML = '<img src="' + p.url + '">';
+        document.getElementById('lightboxTitle').textContent = p.title || '';
+        document.getElementById('lightboxMeta').textContent = (p.datetime ? p.datetime + '  ·  ' : '') + (p.venue || '');
+        const extraLines = [];
+        if (p.equipment) extraLines.push('拍攝設備：' + p.equipment);
+        if (p.seat) extraLines.push('座位：' + p.seat);
+        document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+        albumModal.classList.remove('open');
+        document.getElementById('lightbox').classList.add('open');
+      });
+    }
+  };
 
   function groupByTitle(items){
     const map = new Map();
