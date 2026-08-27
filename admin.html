@@ -389,7 +389,7 @@
         done++;
       }catch(err){
         console.error(err);
-        uploadProgress.textContent = '上傳失敗，請檢查 Cloudinary 設定是否正確';
+        uploadProgress.textContent = '上傳失敗：' + (err.message || 'Cloudinary 設定可能不正確');
         uploadBtn.disabled = false;
         return;
       }
@@ -415,8 +415,11 @@
       method: 'POST',
       body: formData
     });
-    if(!res.ok) throw new Error('Cloudinary upload failed');
     const data = await res.json();
+    if(!res.ok){
+      const msg = (data && data.error && data.error.message) ? data.error.message : ('Cloudinary upload failed (HTTP ' + res.status + ')');
+      throw new Error(msg);
+    }
     return data.secure_url;
   }
 
