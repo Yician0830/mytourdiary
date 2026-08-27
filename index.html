@@ -705,7 +705,8 @@ Object.entries(grids).forEach(([cat, el]) => {
   }
 });
 if (coverPreview && all.length){
-  const shuffled = [...all].sort(() => Math.random() - 0.5);
+  const previewPool = all.filter(p => p.category !== 'fancam');
+  const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
   coverPreview.innerHTML = shuffled.slice(0, 6).map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
       ).join('');
