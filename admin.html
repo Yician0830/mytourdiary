@@ -186,9 +186,9 @@
           </select>
         </div>
         <div class="field">
-          <label>日期時間(顯示在照片右下角)</label>
-          <input type="text" id="f-datetime" placeholder="例如：'24.08.17 19:42">
-        </div>
+        <label>日期時間(顯示在照片右下角)</label>
+        <input type="text" id="f-datetime" placeholder="例如：'24.08.17 19:42">
+           </div>
         <div class="field">
           <label>標題</label>
           <input type="text" id="f-title" placeholder="例如：主舞台 · 開場曲">
@@ -208,6 +208,10 @@
       <div class="field">
         <label>影片連結(直拍才需要填)</label>
         <input type="text" id="f-link" placeholder="例如：https://youtube.com/...">
+        </div>
+        <div class="field full">
+          <label>藝人</label>
+          <input type="text" id="f-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人">
         </div>
         <div class="field full">
           <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
@@ -273,6 +277,10 @@
       <input type="text" id="e-link">
     </div>
     <div class="field">
+      <label>藝人</label>
+      <input type="text" id="e-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人">
+    </div>
+    <div class="field">
       <label>標籤(用逗號分隔)</label>
       <input type="text" id="e-tags">
     </div>
@@ -282,6 +290,7 @@
     </div>
   </div>
 </div>
+<datalist id="artist-datalist"></datalist>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import {
@@ -377,6 +386,7 @@
   uploadBtn.addEventListener('click', async () => {
     if(selectedFiles.length === 0){ uploadProgress.textContent = '請先選擇至少一張照片'; return; }
     const category = document.getElementById('f-category').value;
+    const artist = document.getElementById('f-artist').value.trim();
     const datetime = document.getElementById('f-datetime').value.trim();
     const title = document.getElementById('f-title').value.trim();
     const venue = document.getElementById('f-venue').value.trim();
@@ -394,7 +404,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, datetime, title, venue, equipment, seat, link, tags,
+          url, category, artist, datetime, title, venue, equipment, seat, link, tags,
           createdAt: serverTimestamp()
         });
         done++;
@@ -410,6 +420,7 @@
     previewList.innerHTML = '';
     fileInput.value = '';
     document.getElementById('f-title').value = '';
+     document.getElementById('f-artist').value = '';
      document.getElementById('f-venue').value = '';
     document.getElementById('f-equipment').value = '';
     document.getElementById('f-seat').value = '';
@@ -515,7 +526,16 @@
       allPhotos = [];
       snapshot.forEach(docSnap => allPhotos.push({ id: docSnap.id, ...docSnap.data() }));
       renderPhotoList();
+      renderArtistDatalist();
     });
+  }
+
+  // 把出現過的藝人名稱都收進 datalist,輸入欄位就能下拉選擇之前用過的名字
+  function renderArtistDatalist(){
+    const artistDatalist = document.getElementById('artist-datalist');
+    const artists = Array.from(new Set(allPhotos.map(p => p.artist).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    artistDatalist.innerHTML = artists.map(a => `<option value="${escapeHTML(a)}">`).join('');
   }
 
   const CAT_LABEL = { stage: '舞台焦點', airport: '飛行日記', fanmeet: '近距離', fancam: '直拍精選' };
@@ -532,6 +552,7 @@
         <div class="info">
           <div class="cat">${CAT_LABEL[p.category] || p.category}</div>
           <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
+          ${p.artist ? `<div class="m" style="margin-top:2px;">👤 ${escapeHTML(p.artist)}</div>` : ''}
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
         </div>
@@ -556,6 +577,7 @@
     // ===== 編輯照片 =====
   const editOverlay = document.getElementById('edit-overlay');
   const eCategory = document.getElementById('e-category');
+  const eArtist = document.getElementById('e-artist');
   const eDatetime = document.getElementById('e-datetime');
   const eTitle = document.getElementById('e-title');
   const eVenue = document.getElementById('e-venue');
@@ -572,6 +594,7 @@
     if(!p) return;
     editingId = id;
     eCategory.value = p.category || 'stage';
+    eArtist.value = p.artist || '';
     eDatetime.value = p.datetime || '';
     eTitle.value = p.title || '';
     eVenue.value = p.venue || '';
@@ -597,6 +620,7 @@
     try{
        await updateDoc(doc(db, 'photos', editingId), {
         category: eCategory.value,
+        artist: eArtist.value.trim(),
         datetime: eDatetime.value.trim(),
         title: eTitle.value.trim(),
         venue: eVenue.value.trim(),

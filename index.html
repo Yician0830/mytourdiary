@@ -457,7 +457,15 @@
   <div class="tag-filter" id="tag-filter">
     <button data-tag="all" class="active">全部</button>
   </div>
-  <div class="tag-empty-note" id="tag-empty-note">目前這個標籤還沒有照片</div>
+</section>
+
+<!-- ===== ARTIST FILTER ===== -->
+<section id="artist-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none; padding-top:0;">
+  <div class="tag-filter-label">篩選 · Filter by Artist</div>
+  <div class="tag-filter" id="artist-filter">
+    <button data-artist="all" class="active">全部</button>
+  </div>
+  <div class="tag-empty-note" id="tag-empty-note">目前這個篩選條件下還沒有照片</div>
 </section>
 
 <!-- ===== 01 STAGE ===== -->
@@ -674,7 +682,7 @@
   function fancamCellHTML(p){
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}">
+      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         <div class="fancam-play">▶</div>
         ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
@@ -754,8 +762,8 @@
   window.openAlbumModal = function(idx){
     const fullGroup = currentAlbums[idx];
     if (!fullGroup) return;
-    const group = (typeof currentTagFilter !== 'undefined' && currentTagFilter !== 'all')
-      ? fullGroup.filter(p => (p.tags || []).includes(currentTagFilter))
+    const group = (typeof photoMatchesFilters === 'function')
+      ? fullGroup.filter(photoMatchesFilters)
       : fullGroup;
     if (!group.length) return;
     currentModalGroup = group;
@@ -799,8 +807,10 @@
     const flashClass = FLASH_CLASS[cover.category] || 'flash-stage';
     const unionTags = Array.from(new Set(photos.flatMap(ph => ph.tags || [])));
     const tagsAttr = escapeHTML(unionTags.join(','));
+    const unionArtists = Array.from(new Set(photos.map(ph => ph.artist).filter(Boolean)));
+    const artistAttr = escapeHTML(unionArtists.join(','));
     return `
-      <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}">
+      <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}" data-artist="${artistAttr}">
         <img src="${escapeHTML(cover.url)}" loading="lazy" alt="${escapeHTML(cover.title || '')}">
         <div class="album-badge">📷 ${photos.length} 張</div>
         ${cover.datetime ? `<div class="stamp">${escapeHTML(cover.datetime)}</div>` : ''}
@@ -813,7 +823,7 @@
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}">
+      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
@@ -873,7 +883,8 @@ if (coverPreview && all.length){
     });
 
     renderTagFilter(all);
-    applyTagFilter();
+    renderArtistFilter(all);
+    applyFilters();
     updateColophonStats(all);
     bindLightbox();
   }, (err) => {
@@ -937,20 +948,55 @@ if (coverPreview && all.length){
         currentTagFilter = btn.dataset.tag;
         tagFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        applyTagFilter();
+        applyFilters();
       });
     }
   }
 
-  function applyTagFilter(){
+  // ===== 藝人篩選（跟標籤篩選各自獨立，兩者可同時套用）=====
+  let currentArtistFilter = 'all';
+  const artistFilterWrap = document.getElementById('artist-filter-wrap');
+  const artistFilterEl = document.getElementById('artist-filter');
+
+  function renderArtistFilter(all){
+    const artistSet = new Set();
+    all.forEach(p => { if (p.artist) artistSet.add(p.artist); });
+
+    if (!artistSet.size){
+      artistFilterWrap.style.display = 'none';
+      return;
+    }
+    artistFilterWrap.style.display = '';
+    const artists = Array.from(artistSet).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    artistFilterEl.innerHTML = '<button data-artist="all" class="' + (currentArtistFilter === 'all' ? 'active' : '') + '">全部</button>' +
+      artists.map(a => `<button data-artist="${escapeHTML(a)}" class="${currentArtistFilter === a ? 'active' : ''}">${escapeHTML(a)}</button>`).join('');
+
+    if (!artistFilterEl.dataset.bound){
+      artistFilterEl.dataset.bound = '1';
+      artistFilterEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        currentArtistFilter = btn.dataset.artist;
+        artistFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+      });
+    }
+  }
+
+  function photoMatchesFilters(p){
+    const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
+    const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
+    return tagOK && artistOK;
+  }
+
+  function applyFilters(){
     let visibleCount = 0;
     document.querySelectorAll('#stage-grid [data-tags], #airport-grid [data-tags], #fanmeet-grid [data-tags], #fancam-grid [data-tags]').forEach(el => {
       const albumIdx = el.dataset.albumIndex;
       if (albumIdx !== undefined){
         const group = currentAlbums[albumIdx] || [];
-        const matchedPhotos = currentTagFilter === 'all'
-          ? group
-          : group.filter(p => (p.tags || []).includes(currentTagFilter));
+        const matchedPhotos = group.filter(photoMatchesFilters);
         const match = matchedPhotos.length > 0;
         el.classList.toggle('tag-hidden', !match);
         const badge = el.querySelector('.album-badge');
@@ -958,17 +1004,16 @@ if (coverPreview && all.length){
         if (match) visibleCount++;
         return;
       }
-      if (currentTagFilter === 'all'){
-        el.classList.remove('tag-hidden');
-        visibleCount++;
-        return;
-      }
       const tags = (el.dataset.tags || '').split(',').filter(Boolean);
-      const match = tags.includes(currentTagFilter);
+      const artist = el.dataset.artist || '';
+      const tagOK = currentTagFilter === 'all' || tags.includes(currentTagFilter);
+      const artistOK = currentArtistFilter === 'all' || artist === currentArtistFilter;
+      const match = tagOK && artistOK;
       el.classList.toggle('tag-hidden', !match);
       if (match) visibleCount++;
     });
-    tagEmptyNote.classList.toggle('show', currentTagFilter !== 'all' && visibleCount === 0);
+    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all';
+    tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
   }
   </script>
   <script>
