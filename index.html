@@ -807,7 +807,7 @@ if (coverPreview && all.length){
       statYearsEl.textContent = minYear < currentYear ? `${minYear}-${currentYear}` : `${currentYear}`;
     }
 
-    const eventTitles = new Set(all.map(p => (p.title || '').trim()).filter(Boolean));
+    const eventTitles = new Set(all.filter(p => p.category !== 'fancam').map(p => (p.title || '').trim()).filter(Boolean));
     if (statEventsEl){
       statEventsEl.textContent = eventTitles.size;
     }
