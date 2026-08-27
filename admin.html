@@ -90,10 +90,10 @@
   .filter-row button.active{ background:var(--ink); color:var(--paper); }
 
   .photo-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
-  .photo-item{ border:1px solid var(--line); background:var(--paper-2); overflow:hidden; }
+  .photo-item{ border:1px solid var(--line); background:var(--paper-2); overflow:hidden; display:flex; flex-direction:column; height:100%; }
   .photo-item .thumb{ aspect-ratio:4/5; overflow:hidden; }
   .photo-item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .photo-item .info{ padding:10px 12px; }
+  .photo-item .info{ padding:10px 12px; flex:1; }
   .photo-item .info .t{ font-size:13px; font-weight:500; margin-bottom:2px; }
   .photo-item .info .m{ font-family:var(--mono); font-size:10px; color:var(--ink-faint); }
   .photo-item .info .cat{ display:inline-block; font-family:var(--mono); font-size:10px; color:var(--press); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em; }
