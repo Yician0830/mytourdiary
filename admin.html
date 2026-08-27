@@ -195,6 +195,14 @@
         <div class="field">
           <label>地點</label>
           <input type="text" id="f-venue" placeholder="例如：高雄巨蛋">
+           </div>
+      <div class="field">
+        <label>拍攝設備</label>
+        <input type="text" id="f-equipment" placeholder="例如：Canon R6 + RF 100-500mm">
+      </div>
+      <div class="field">
+        <label>座位</label>
+        <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
         </div>
         <div class="field full">
           <button class="btn-block" id="upload-btn">上傳照片</button>
@@ -240,6 +248,14 @@
     <div class="field">
       <label>地點</label>
       <input type="text" id="e-venue">
+    </div>
+    <div class="field">
+      <label>拍攝設備</label>
+      <input type="text" id="e-equipment">
+    </div>
+    <div class="field">
+      <label>座位</label>
+      <input type="text" id="e-seat">
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="edit-cancel">取消</button>
@@ -345,6 +361,8 @@
     const datetime = document.getElementById('f-datetime').value.trim();
     const title = document.getElementById('f-title').value.trim();
     const venue = document.getElementById('f-venue').value.trim();
+    const equipment = document.getElementById('f-equipment').value.trim();
+    const seat = document.getElementById('f-seat').value.trim();
 
     uploadBtn.disabled = true;
     let done = 0;
@@ -353,7 +371,7 @@
       try{
         const url = await uploadToCloudinary(file);
         await addDoc(collection(db, 'photos'), {
-          url, category, datetime, title, venue,
+          url, category, datetime, title, venue, equipment, seat,
           createdAt: serverTimestamp()
         });
         done++;
@@ -369,7 +387,9 @@
     previewList.innerHTML = '';
     fileInput.value = '';
     document.getElementById('f-title').value = '';
-    document.getElementById('f-venue').value = '';
+     document.getElementById('f-venue').value = '';
+    document.getElementById('f-equipment').value = '';
+    document.getElementById('f-seat').value = '';
     document.getElementById('f-datetime').value = '';
     uploadBtn.disabled = false;
   });
@@ -455,6 +475,8 @@
   const eDatetime = document.getElementById('e-datetime');
   const eTitle = document.getElementById('e-title');
   const eVenue = document.getElementById('e-venue');
+  const eEquipment = document.getElementById('e-equipment');
+  const eSeat = document.getElementById('e-seat');
   const editSaveBtn = document.getElementById('edit-save');
   const editCancelBtn = document.getElementById('edit-cancel');
   let editingId = null;
@@ -467,6 +489,8 @@
     eDatetime.value = p.datetime || '';
     eTitle.value = p.title || '';
     eVenue.value = p.venue || '';
+    eEquipment.value = p.equipment || '';
+    eSeat.value = p.seat || '';
     editOverlay.classList.add('open');
   }
 
@@ -483,11 +507,13 @@
     editSaveBtn.disabled = true;
     editSaveBtn.textContent = '儲存中…';
     try{
-      await updateDoc(doc(db, 'photos', editingId), {
+       await updateDoc(doc(db, 'photos', editingId), {
         category: eCategory.value,
         datetime: eDatetime.value.trim(),
         title: eTitle.value.trim(),
-        venue: eVenue.value.trim()
+        venue: eVenue.value.trim(),
+        equipment: eEquipment.value.trim(),
+        seat: eSeat.value.trim()
       });
       closeEditModal();
     }catch(err){
