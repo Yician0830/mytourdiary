@@ -168,8 +168,9 @@
   .toc-row .ct{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); }
   .toc-row .dots{ display:none; }
   @media (max-width:640px){
-    .toc-row{ grid-template-columns:40px 1fr; }
+    .toc-row{ grid-template-columns:50px 1fr; }
     .toc-row .ct{ display:none; }
+    .toc-row .ti{ overflow-wrap:break-word; }
   }
 
   /* ===== SPREAD GRID ===== */
@@ -251,6 +252,11 @@
     font-family:var(--display); font-size:clamp(44px,7vw,90px); line-height:0.9;
   }
   .contact-links{ display:flex; flex-direction:column; gap:8px; text-align:right; }
+
+@media (max-width:600px){
+  .contact{ flex-direction:column; align-items:flex-start; }
+  .contact-links{ align-items:flex-start; text-align:left; }
+}
   .contact-links a{
     font-family:var(--mono); font-size:13px; letter-spacing:0.04em; color:var(--ink-dim);
     border-bottom:1px solid transparent; padding-bottom:2px;
