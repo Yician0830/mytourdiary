@@ -1008,7 +1008,14 @@ if (coverPreview && all.length){
         el.classList.toggle('tag-hidden', !match);
         const badge = el.querySelector('.album-badge');
         if (badge) badge.textContent = '📷 ' + matchedPhotos.length + ' 張';
-        if (match) visibleCount++;
+        if (match){
+          const coverPhoto = matchedPhotos[0];
+          const img = el.querySelector('img');
+          if (img && img.src !== coverPhoto.url) img.src = coverPhoto.url;
+          const stampEl = el.querySelector('.stamp');
+          if (stampEl) stampEl.textContent = coverPhoto.datetime || '';
+          visibleCount++;
+        }
         return;
       }
       const tags = (el.dataset.tags || '').split(',').filter(Boolean);
