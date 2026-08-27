@@ -749,15 +749,22 @@
     if (e.key === 'ArrowRight') window.lightboxNext();
   });
 
+  let currentModalGroup = [];
+
   window.openAlbumModal = function(idx){
-    const group = currentAlbums[idx];
-    if (!group) return;
+    const fullGroup = currentAlbums[idx];
+    if (!fullGroup) return;
+    const group = (typeof currentTagFilter !== 'undefined' && currentTagFilter !== 'all')
+      ? fullGroup.filter(p => (p.tags || []).includes(currentTagFilter))
+      : fullGroup;
+    if (!group.length) return;
+    currentModalGroup = group;
     const albumModalTitle = document.getElementById('albumModalTitle');
     const albumModalGrid = document.getElementById('albumModalGrid');
     const albumModal = document.getElementById('albumModal');
     albumModalTitle.textContent = group[0].title || '';
     albumModalGrid.innerHTML = group.map((p, i) =>
-      `<img src="${p.url}" loading="lazy" data-album-idx="${idx}" data-photo-idx="${i}">`
+      `<img src="${p.url}" loading="lazy" data-photo-idx="${i}">`
     ).join('');
     albumModal.classList.add('open');
 
@@ -768,10 +775,9 @@
       albumModalGrid.addEventListener('click', (e)=>{
         const img = e.target.closest('img');
         if (!img) return;
-        const grp = currentAlbums[img.dataset.albumIdx];
-        window.lightboxGroup = grp;
+        window.lightboxGroup = currentModalGroup;
         window.lightboxIndex = Number(img.dataset.photoIdx);
-        showLightboxPhoto(grp[window.lightboxIndex]);
+        showLightboxPhoto(currentModalGroup[window.lightboxIndex]);
         albumModal.classList.remove('open');
         document.getElementById('lightbox').classList.add('open');
       });
@@ -939,6 +945,19 @@ if (coverPreview && all.length){
   function applyTagFilter(){
     let visibleCount = 0;
     document.querySelectorAll('#stage-grid [data-tags], #airport-grid [data-tags], #fanmeet-grid [data-tags], #fancam-grid [data-tags]').forEach(el => {
+      const albumIdx = el.dataset.albumIndex;
+      if (albumIdx !== undefined){
+        const group = currentAlbums[albumIdx] || [];
+        const matchedPhotos = currentTagFilter === 'all'
+          ? group
+          : group.filter(p => (p.tags || []).includes(currentTagFilter));
+        const match = matchedPhotos.length > 0;
+        el.classList.toggle('tag-hidden', !match);
+        const badge = el.querySelector('.album-badge');
+        if (badge) badge.textContent = '📷 ' + matchedPhotos.length + ' 張';
+        if (match) visibleCount++;
+        return;
+      }
       if (currentTagFilter === 'all'){
         el.classList.remove('tag-hidden');
         visibleCount++;
