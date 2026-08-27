@@ -735,7 +735,7 @@ Object.entries(grids).forEach(([cat, el]) => {
 if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
-    const framesHTML = shuffled.slice(0, 8).map(p =>
+    const framesHTML = shuffled.slice(0, 7).map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
       ).join('');
   coverPreview.innerHTML = '<div class="cover-bottom-track">' + framesHTML + framesHTML + '</div>';
