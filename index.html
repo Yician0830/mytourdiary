@@ -591,6 +591,12 @@
   }
   .share-menu button:first-child{ border-top:none; }
   .share-menu button:hover{ background:var(--paper-2); }
+  .download-menu{ min-width:220px; }
+  .download-menu .dl-note{
+    padding:10px 14px; font-family:var(--sans); font-size:11.5px; line-height:1.6;
+    color:var(--ink-dim); background:var(--paper-2); border-top:1px solid var(--line);
+  }
+  .download-menu button{ white-space:nowrap; }
 
   /* ===== 巡演足跡地圖 ===== */
   .tour-map-wrap{ position:relative; max-width:340px; margin:0 auto; padding:10px 0 4px; }
@@ -927,6 +933,13 @@
       <button type="button" id="shareX">分享到 X</button>
       <button type="button" id="shareCopy">複製連結</button>
     </div>
+    <div class="lightbox-share" id="lightboxDownload" style="display:none;">⬇ 下載</div>
+    <div class="share-menu download-menu" id="downloadMenu">
+      <div class="dl-note">非商業用途可下載，轉載請標明 @_chen_mm。</div>
+      <button type="button" id="dlOriginal">⬇ 原尺寸</button>
+      <button type="button" id="dl1920">⬇ 1920px</button>
+      <button type="button" id="dlIG">⬇ IG 尺寸（1080×1350）</button>
+    </div>
   </div>
   <div class="lightbox-inner">
     <div class="lightbox-counter" id="lightboxCounter"></div>
@@ -1139,6 +1152,69 @@
     }
   });
 
+  /* ===== 照片下載 Logic（僅在該張照片開放下載時才會顯示按鈕）===== */
+  const downloadBtn = document.getElementById('lightboxDownload');
+  const downloadMenu = document.getElementById('downloadMenu');
+
+  downloadBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!window.currentPhotoAllowDownload) return;
+    downloadMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!downloadMenu.contains(e.target) && e.target !== downloadBtn) downloadMenu.classList.remove('open');
+  });
+
+  function sanitizeFileBase(str){
+    return String(str || '_CHEMERA_').replace(/[\\/:*?"<>|]+/g, '').trim().slice(0, 60) || '_CHEMERA_';
+  }
+  function extFromMime(type){
+    if (type === 'image/png') return 'png';
+    if (type === 'image/webp') return 'webp';
+    return 'jpg';
+  }
+
+  // 用 fetch → blob 的方式強制觸發「下載」而不是在分頁裡直接打開圖片；
+  // 若圖床跨域限制導致 fetch 失敗，退回用開新分頁的方式讓使用者自行儲存。
+  async function downloadPhoto(url, sizeLabel){
+    if (!url) return;
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const base = sanitizeFileBase(document.getElementById('lightboxTitle').textContent);
+      const filename = base + '-' + sizeLabel + '.' + extFromMime(blob.type);
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+    } catch (err) {
+      console.error('下載失敗，改為開新分頁讓使用者自行儲存：', err);
+      window.open(url, '_blank');
+    }
+    downloadMenu.classList.remove('open');
+  }
+
+  document.getElementById('dlOriginal').addEventListener('click', (e) => {
+    e.stopPropagation();
+    downloadPhoto(window.currentPhotoUrl, '原尺寸');
+  });
+  document.getElementById('dl1920').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fn = window.optimizeImg;
+    downloadPhoto(fn ? fn(window.currentPhotoUrl, 1920) : window.currentPhotoUrl, '1920px');
+  });
+  document.getElementById('dlIG').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fn = window.optimizeImg;
+    downloadPhoto(fn ? fn(window.currentPhotoUrl, 1080, 1350) : window.currentPhotoUrl, 'IG尺寸');
+  });
+
   /* ===== IG 限動 9:16 拍立得卡片生成 Logic ===== */
   document.getElementById('lightboxPolaroid').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1334,6 +1410,7 @@ const grids = {
       return url;
     }
   }
+  window.optimizeImg = optimizeImg; // 讓下載功能（在另一個 script 區塊）也能沿用同一套縮圖規則
 
   // ===== 愛心收藏：用 localStorage 記住這個瀏覽器按過哪些照片，避免重複計算 =====
   function getLikedSet(){
@@ -1398,6 +1475,11 @@ const grids = {
 
   function showLightboxPhoto(p){
     window.currentPhotoId = p.id || null;
+    window.currentPhotoUrl = p.url || '';
+    window.currentPhotoAllowDownload = !!p.allowDownload;
+    const dlBtn = document.getElementById('lightboxDownload');
+    if (dlBtn) dlBtn.style.display = window.currentPhotoAllowDownload ? '' : 'none';
+    document.getElementById('downloadMenu')?.classList.remove('open');
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const lbFrameEl = document.getElementById('lightboxFrame');
     lbFrameEl.className = 'lightbox-frame flash ' + flashClass;

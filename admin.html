@@ -128,6 +128,9 @@
   .btn-row .edit:hover{ background:var(--ink); color:#fff; }
   .btn-row .del{ color:var(--press); width:auto; }
   .btn-row .del:hover{ background:var(--press); color:#fff; }
+  .btn-row .dl-toggle{ color:var(--ink-dim); border-right:1px solid var(--line); }
+  .btn-row .dl-toggle:hover{ background:var(--ink); color:#fff; }
+  .btn-row .dl-toggle[data-state="1"]{ color:#1a7f37; }
 
   .modal-overlay{
     position:fixed; inset:0; background:rgba(21,19,15,0.55);
@@ -257,6 +260,10 @@
           <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
           <input type="text" id="f-tags" placeholder="例如：首爾, 簽售服裝, 安可舞台">
         </div>
+        <div class="field full" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="f-allow-download" style="width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none;">
+          <label for="f-allow-download" style="margin:0; text-transform:none; font-size:13px; color:var(--ink); cursor:pointer;">開放這批照片下載（原尺寸／1920px／IG 尺寸，並附上使用規範），預設不開放</label>
+        </div>
         <div class="field full">
           <button class="btn-block" id="upload-btn">上傳照片</button>
           <div class="progress" id="upload-progress"></div>
@@ -353,6 +360,10 @@
     <div class="field">
       <label>標籤(用逗號分隔)</label>
       <input type="text" id="e-tags">
+    </div>
+    <div class="field" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="e-allow-download" style="width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none;">
+      <label for="e-allow-download" style="margin:0; text-transform:none; font-size:13px; color:var(--ink); cursor:pointer;">開放下載（原尺寸／1920px／IG 尺寸）</label>
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="edit-cancel">取消</button>
@@ -493,6 +504,7 @@
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
           url, category, artist, datetime, title, song, venue, city, equipment, seat, link, tags,
+          allowDownload: document.getElementById('f-allow-download').checked,
           createdAt: serverTimestamp()
         });
         done++;
@@ -517,6 +529,7 @@
     document.getElementById('f-link').value = '';
     document.getElementById('f-datetime').value = '';
     document.getElementById('f-tags').value = '';
+    document.getElementById('f-allow-download').checked = false;
     uploadBtn.disabled = false;
   });
 
@@ -672,6 +685,7 @@
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
         </div>
         <div class="btn-row">
+          <button class="dl-toggle" data-id="${p.id}" data-state="${p.allowDownload ? '1' : '0'}">${p.allowDownload ? '✅ 可下載' : '🔒 不可下載'}</button>
           <button class="edit" data-id="${p.id}">編輯</button>
           <button class="del" data-id="${p.id}">刪除</button>
         </div>
@@ -686,6 +700,22 @@
     });
     photoGrid.querySelectorAll('.edit').forEach(btn => {
       btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+    });
+    photoGrid.querySelectorAll('.dl-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const p = allPhotos.find(x => x.id === id);
+        if(!p) return;
+        btn.disabled = true;
+        try{
+          await updateDoc(doc(db, 'photos', id), { allowDownload: !p.allowDownload });
+        }catch(err){
+          console.error(err);
+          alert('切換下載狀態失敗，請稍後再試一次');
+        }finally{
+          btn.disabled = false;
+        }
+      });
     });
   }
 
@@ -702,6 +732,7 @@
   const eSeat = document.getElementById('e-seat');
     const eLink = document.getElementById('e-link');
   const eTags = document.getElementById('e-tags');
+  const eAllowDownload = document.getElementById('e-allow-download');
   const editSaveBtn = document.getElementById('edit-save');
   const editCancelBtn = document.getElementById('edit-cancel');
   let editingId = null;
@@ -722,6 +753,7 @@
     eSeat.value = p.seat || '';
     eLink.value = p.link || '';
     eTags.value = (p.tags || []).join(', ');
+    eAllowDownload.checked = !!p.allowDownload;
     editOverlay.classList.add('open');
   }
 
@@ -749,7 +781,8 @@
          equipment: eEquipment.value.trim(),
         seat: eSeat.value.trim(),
         link: eLink.value.trim(),
-        tags: parseTagsInput(eTags.value)
+        tags: parseTagsInput(eTags.value),
+        allowDownload: eAllowDownload.checked
       });
       closeEditModal();
     }catch(err){
