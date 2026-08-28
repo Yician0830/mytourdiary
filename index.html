@@ -254,6 +254,48 @@
     letter-spacing:0.06em; border:1px dashed var(--line);
   }
 
+  /* ===== TIMELINE OVERVIEW ===== */
+  .timeline-list{ position:relative; padding:10px 0 10px 6px; }
+  .timeline-list::before{
+    content:''; position:absolute; left:9px; top:6px; bottom:6px; width:1px;
+    background:var(--line-strong);
+  }
+  .timeline-item{
+    position:relative; padding:0 0 40px 34px; cursor:pointer;
+  }
+  .timeline-item:last-child{ padding-bottom:4px; }
+  .timeline-item::before{
+    content:''; position:absolute; left:2px; top:5px; width:15px; height:15px;
+    border-radius:50%; background:var(--paper); border:2px solid var(--press);
+    z-index:2;
+  }
+  .timeline-item:hover .timeline-title{ color:var(--press); }
+  .timeline-date{
+    font-family:var(--mono); font-size:11px; color:var(--press);
+    letter-spacing:0.06em; margin-bottom:6px;
+  }
+  .timeline-item-inner{ display:flex; gap:14px; align-items:flex-start; }
+  .timeline-thumb{
+    width:64px; height:64px; object-fit:cover; flex-shrink:0;
+    border:1px solid var(--line);
+  }
+  .timeline-title{
+    font-family:var(--editorial); font-style:normal; font-size:18px;
+    color:var(--ink); margin-bottom:6px; transition:color .15s;
+  }
+  .timeline-meta{
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    letter-spacing:0.03em; display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  }
+  .timeline-cat-tag{
+    display:inline-block; padding:2px 8px; border:1px solid var(--line-strong);
+    font-size:10px; color:var(--ink-dim);
+  }
+  @media (max-width:520px){
+    .timeline-thumb{ width:52px; height:52px; }
+    .timeline-title{ font-size:16px; }
+  }
+
   /* ===== TAG FILTER ===== */
   .tag-filter-wrap{ padding-top:36px; padding-bottom:36px; }
   .tag-filter-label{
@@ -371,6 +413,13 @@
     background:rgba(21,19,15,0.7); color:#f4f2ec;
     font-family:var(--mono); font-size:10px; padding:3px 8px; letter-spacing:0.04em;
   }
+  .like-badge{
+    position:absolute; left:10px; bottom:9px; z-index:3;
+    font-family:var(--mono); font-size:10px; color:#f4f2ec;
+    background:rgba(21,19,15,0.55); padding:3px 8px; letter-spacing:0.04em;
+    display:flex; align-items:center; gap:3px;
+  }
+  .like-badge .like-heart{ color:#cfc9ba; }
   .album-modal-grid{
     display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
     max-height:70vh; overflow-y:auto;
@@ -382,13 +431,18 @@
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
-  .lightbox-share-wrap{ position:absolute; top:28px; left:36px; z-index:5; }
+  .lightbox-share-wrap{ position:absolute; top:28px; left:36px; z-index:5; display:flex; gap:10px; }
   .lightbox-share{
     font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer;
     letter-spacing:0.06em; padding:6px 10px; border:1px solid rgba(255,255,255,0.25);
     white-space:nowrap; width:max-content;
   }
   .lightbox-share:hover{ color:#fff; border-color:#fff; }
+  .lightbox-like{ display:flex; align-items:center; gap:5px; }
+  .lightbox-like .like-heart{ font-size:13px; transition:color .15s, transform .15s; }
+  .lightbox-like.liked{ color:#fff; border-color:var(--press); }
+  .lightbox-like.liked .like-heart{ color:var(--press); }
+  .lightbox-like:active .like-heart{ transform:scale(1.2); }
   .share-menu{
     display:none; position:absolute; top:100%; left:0; margin-top:6px;
     background:var(--paper); border:1px solid var(--line-strong); min-width:150px;
@@ -401,13 +455,6 @@
   }
   .share-menu button:first-child{ border-top:none; }
   .share-menu button:hover{ background:var(--paper-2); }
-
-  .lightbox-share{
-    position:absolute; top:28px; left:36px; z-index:5;
-    font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer;
-    letter-spacing:0.06em; padding:6px 10px; border:1px solid rgba(255,255,255,0.25);
-  }
-  .lightbox-share:hover{ color:#fff; border-color:#fff; }
 
   .search-input{
     width:100%; padding:13px 16px; font-family:var(--mono); font-size:13px;
@@ -433,6 +480,7 @@
     <a href="#airport">機場</a>
     <a href="#fanmeet">見面會</a>
     <a href="#fancam">直拍</a>
+    <a href="#timeline">總覽</a>
     <a href="#contact">聯絡</a>
   </div>
 </nav>
@@ -574,6 +622,17 @@
     <div class="empty-note">尚未上傳直拍影片</div>
   </div>
 </section>
+
+<!-- ===== 05 TIMELINE OVERVIEW ===== -->
+<section id="timeline" class="wrap">
+  <div class="section-head reveal">
+    <div><div class="num">05 — Overview</div><h3>場次總覽</h3></div>
+    <div class="desc">依時間整理走過的每一站，方便回顧</div>
+  </div>
+  <div class="timeline-list reveal" id="timeline-list">
+    <div class="empty-note">尚未有場次紀錄</div>
+  </div>
+</section>
 <!-- ===== COLOPHON ===== -->
 <div class="wrap">
 <div class="colophon reveal">
@@ -621,6 +680,7 @@
 <div class="lightbox" id="lightbox">
   <div class="lightbox-close" id="lightboxClose">關閉 ✕</div>
   <div class="lightbox-share-wrap">
+    <div class="lightbox-share lightbox-like" id="lightboxLike"><span class="like-heart">♡</span> <span class="like-count">0</span></div>
     <div class="lightbox-share" id="lightboxShare">🔗 分享</div>
     <div class="share-menu" id="shareMenu">
       <button type="button" id="shareThreads">分享到 Threads</button>
@@ -685,6 +745,7 @@
         if (f.dataset.equipment) extraLines.push('拍攝設備：' + f.dataset.equipment);
         if (f.dataset.seat) extraLines.push('座位：' + f.dataset.seat);
         document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+        if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(f.dataset.photoId, Number(f.dataset.likes || 0));
         lightbox.classList.add('open');
         if (window.updateLightboxNav) window.updateLightboxNav();
       });
@@ -700,6 +761,12 @@
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeLightbox(); });
+
+  document.getElementById('lightboxLike').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!window.currentPhotoId) return;
+    if (window.toggleLike) window.toggleLike(window.currentPhotoId);
+  });
 
   window.currentPhotoId = null;
 
@@ -777,7 +844,7 @@
 <!-- ===== FIREBASE：即時讀取站主上傳的照片（公開頁面只讀,不能寫入） ===== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, onSnapshot }
+  import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, increment }
     from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -809,6 +876,51 @@
   function escapeHTML(str){
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
+
+  // ===== 愛心收藏：用 localStorage 記住這個瀏覽器按過哪些照片，避免重複計算 =====
+  function getLikedSet(){
+    try { return new Set(JSON.parse(localStorage.getItem('likedPhotos') || '[]')); }
+    catch(e){ return new Set(); }
+  }
+  function saveLikedSet(set){
+    try { localStorage.setItem('likedPhotos', JSON.stringify([...set])); } catch(e){}
+  }
+  function isLiked(id){ return !!id && getLikedSet().has(id); }
+
+  // 依照傳入的 id / likes 更新燈箱裡的愛心按鈕顯示（實心/空心 + 數字）
+  window.updateLightboxLikeUI = function(id, likes){
+    const btn = document.getElementById('lightboxLike');
+    if (!btn) return;
+    const liked = isLiked(id);
+    btn.classList.toggle('liked', liked);
+    btn.querySelector('.like-heart').textContent = liked ? '♥' : '♡';
+    btn.querySelector('.like-count').textContent = likes || 0;
+  };
+
+  // 按下愛心：切換收藏狀態，樂觀更新畫面，並把 +1/-1 寫回 Firestore 的 likes 欄位
+  window.toggleLike = async function(id){
+    if (!id) return;
+    const set = getLikedSet();
+    const liked = set.has(id);
+    const delta = liked ? -1 : 1;
+    if (liked) set.delete(id); else set.add(id);
+    saveLikedSet(set);
+
+    const btn = document.getElementById('lightboxLike');
+    if (btn){
+      btn.classList.toggle('liked', !liked);
+      btn.querySelector('.like-heart').textContent = !liked ? '♥' : '♡';
+      const countEl = btn.querySelector('.like-count');
+      const current = parseInt(countEl.textContent || '0', 10) || 0;
+      countEl.textContent = Math.max(0, current + delta);
+    }
+
+    try {
+      await updateDoc(doc(db, 'photos', id), { likes: increment(delta) });
+    } catch (err) {
+      console.error('更新愛心數失敗（請確認 Firestore 規則是否允許 likes 欄位更新）：', err);
+    }
+  };
   function fancamCellHTML(p){
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     const searchAttr = escapeHTML([p.title, p.artist, (p.tags || []).join(' ')].filter(Boolean).join(' ').toLowerCase());
@@ -838,6 +950,7 @@
     if (p.equipment) extraLines.push('拍攝設備：' + p.equipment);
     if (p.seat) extraLines.push('座位：' + p.seat);
     document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+    if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(p.id, p.likes || 0);
     window.updateLightboxNav();
   }
 
@@ -943,10 +1056,12 @@
     const tagsAttr = escapeHTML(unionTags.join(','));
     const unionArtists = Array.from(new Set(photos.map(ph => ph.artist).filter(Boolean)));
     const artistAttr = escapeHTML(unionArtists.join(','));
+    const totalLikes = photos.reduce((sum, ph) => sum + (ph.likes || 0), 0);
     return `
       <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}" data-artist="${artistAttr}">
         <img src="${escapeHTML(cover.url)}" loading="lazy" alt="${escapeHTML(cover.title || '')}">
         <div class="album-badge">📷 ${photos.length} 張</div>
+        <div class="like-badge"><span class="like-heart">♥</span> ${totalLikes}</div>
         ${cover.datetime ? `<div class="stamp">${escapeHTML(cover.datetime)}</div>` : ''}
         <div class="caption-bar"><span class="cap-title">${escapeHTML(cover.title || '')}</span></div>
       </div>`;
@@ -957,11 +1072,81 @@
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
+      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
+        <div class="like-badge"><span class="like-heart">♥</span> ${p.likes || 0}</div>
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
       </div>`;
+  }
+
+  // ===== 場次總覽時間軸：把所有分類的照片依「標題」合併成一場一場的紀錄 =====
+  const TIMELINE_CAT_LABEL = { stage:'舞台', airport:'機場', fanmeet:'見面會', fancam:'直拍' };
+
+  function buildTimelineEntries(all){
+    const map = new Map();
+    all.forEach(p => {
+      const key = (p.title || '').trim() || ('__no_title_' + (p.venue || '') + (p.datetime || ''));
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(p);
+    });
+    const entries = Array.from(map.values()).map(group => {
+      const sorted = [...group].sort((a, b) => {
+        const dateA = (a.datetime || '').replace(/[^0-9]/g, '');
+        const dateB = (b.datetime || '').replace(/[^0-9]/g, '');
+        return dateA.localeCompare(dateB);
+      });
+      const first = sorted[0];
+      const cover = sorted.find(p => p.url) || first;
+      return {
+        title: first.title || '未命名場次',
+        venue: first.venue || '',
+        datetime: first.datetime || '',
+        categories: Array.from(new Set(group.map(p => p.category))),
+        count: group.length,
+        coverUrl: cover.url || '',
+        group: sorted,
+        sortKey: (first.datetime || '').replace(/[^0-9]/g, '')
+      };
+    });
+    entries.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+    return entries;
+  }
+
+  function renderTimeline(all){
+    const listEl = document.getElementById('timeline-list');
+    if (!listEl) return;
+    const entries = buildTimelineEntries(all);
+    if (!entries.length){
+      listEl.innerHTML = '<div class="empty-note">尚未有場次紀錄</div>';
+      return;
+    }
+    listEl.innerHTML = entries.map(en => `
+      <div class="timeline-item">
+        <div class="timeline-date">${escapeHTML(en.datetime || '日期未提供')}</div>
+        <div class="timeline-item-inner">
+          ${en.coverUrl ? `<img class="timeline-thumb" src="${escapeHTML(en.coverUrl)}" loading="lazy">` : ''}
+          <div>
+            <div class="timeline-title">${escapeHTML(en.title)}</div>
+            <div class="timeline-meta">
+              ${en.venue ? `<span>📍 ${escapeHTML(en.venue)}</span>` : ''}
+              <span>📷 ${en.count} 張</span>
+              ${en.categories.map(c => `<span class="timeline-cat-tag">${escapeHTML(TIMELINE_CAT_LABEL[c] || c)}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+
+    listEl.querySelectorAll('.timeline-item').forEach((el, i) => {
+      el.addEventListener('click', () => {
+        const entry = entries[i];
+        if (!entry.group.length) return;
+        window.lightboxGroup = entry.group.length > 1 ? entry.group : null;
+        window.lightboxIndex = 0;
+        showLightboxPhoto(entry.group[0]);
+        document.getElementById('lightbox').classList.add('open');
+      });
+    });
   }
 
   function renderGrids(byCategory){
@@ -1034,6 +1219,7 @@ if (coverPreview && all.length){
     });
 
     latestAllPhotos = all;
+    renderTimeline(all);
     renderTagFilter(all);
     renderArtistFilter(all);
     applyFilters();
