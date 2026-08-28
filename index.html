@@ -382,6 +382,14 @@
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
+  .search-input{
+    width:100%; padding:13px 16px; font-family:var(--mono); font-size:13px;
+    background:var(--paper); border:1px solid var(--line-strong); color:var(--ink);
+    letter-spacing:0.03em;
+  }
+  .search-input:focus{ outline:none; border-color:var(--press); }
+  .search-input::placeholder{ color:var(--ink-faint); }
+
   ::-webkit-scrollbar{ width:9px; }
   ::-webkit-scrollbar-track{ background:var(--paper); }
   ::-webkit-scrollbar-thumb{ background:#c7c1af; }
@@ -449,6 +457,11 @@
     <div class="pg">P. 04</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
   </div>
 
+</section>
+
+<!-- ===== SEARCH ===== -->
+<section id="search-wrap" class="wrap" style="padding-top:36px; padding-bottom:0;">
+  <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
 </section>
 
 <!-- ===== ARTIST FILTER ===== -->
@@ -681,8 +694,9 @@
   }
   function fancamCellHTML(p){
     const tagsAttr = escapeHTML((p.tags || []).join(','));
+    const searchAttr = escapeHTML([p.title, p.artist, (p.tags || []).join(' ')].filter(Boolean).join(' ').toLowerCase());
     return `
-      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
+      <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-search="${searchAttr}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         <div class="fancam-play">▶</div>
         ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
@@ -991,10 +1005,19 @@ if (coverPreview && all.length){
     }
   }
 
+  let currentSearchQuery = '';
+
+  function searchMatches(p){
+    if (!currentSearchQuery) return true;
+    const haystack = [p.title, p.venue, p.artist, (p.tags || []).join(' ')]
+      .filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(currentSearchQuery);
+  }
+
   function photoMatchesFilters(p){
     const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
     const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
-    return tagOK && artistOK;
+    return tagOK && artistOK && searchMatches(p);
   }
 
   function applyFilters(){
@@ -1020,15 +1043,22 @@ if (coverPreview && all.length){
       }
       const tags = (el.dataset.tags || '').split(',').filter(Boolean);
       const artist = el.dataset.artist || '';
+      const searchText = el.dataset.search || '';
       const tagOK = currentTagFilter === 'all' || tags.includes(currentTagFilter);
       const artistOK = currentArtistFilter === 'all' || artist === currentArtistFilter;
-      const match = tagOK && artistOK;
+      const searchOK = !currentSearchQuery || searchText.includes(currentSearchQuery);
+      const match = tagOK && artistOK && searchOK;
       el.classList.toggle('tag-hidden', !match);
       if (match) visibleCount++;
     });
-    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all';
+    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || !!currentSearchQuery;
     tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
   }
+
+  document.getElementById('search-input').addEventListener('input', (e) => {
+    currentSearchQuery = e.target.value.trim().toLowerCase();
+    applyFilters();
+  });
   </script>
   <script>
   document.getElementById('nav-toggle').addEventListener('click', () => {
