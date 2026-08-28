@@ -140,6 +140,23 @@
 .cover-bottom .frame img{ object-fit:cover; }
 @media (max-width:640px){ .cover-bottom .frame{ width:170px; } }
 
+  /* ===== 回到頂部按鈕 ===== */
+  .to-top-btn{
+    position:fixed; right:24px; bottom:24px; z-index:200;
+    width:48px; height:48px; border-radius:50%;
+    background:var(--ink); color:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; line-height:1; border:none; cursor:pointer;
+    box-shadow:0 4px 14px rgba(21,19,15,0.28);
+    opacity:0; visibility:hidden; transform:translateY(12px);
+    transition:opacity .25s ease, transform .25s ease, background .2s ease;
+  }
+  .to-top-btn.show{ opacity:1; visibility:visible; transform:translateY(0); }
+  .to-top-btn:hover{ background:var(--press); }
+  @media (max-width:640px){
+    .to-top-btn{ right:16px; bottom:16px; width:44px; height:44px; font-size:18px; }
+  }
+
   /* ===== FLASH PLACEHOLDER LOOK ===== */
   .flash{ position:relative;  overflow:hidden; }
 
@@ -730,6 +747,9 @@
     <div class="album-modal-grid" id="albumModalGrid"></div>
   </div>
 </div>
+
+<!-- ===== 回到頂部按鈕 ===== -->
+<button type="button" class="to-top-btn" id="toTopBtn" aria-label="回到頂部">↑</button>
 
 <!-- ===== POLAROID PREVIEW MODAL ===== -->
 <div class="polaroid-modal" id="polaroidModal">
@@ -1616,6 +1636,21 @@ document.getElementById('reset-filter-btn')?.addEventListener('click', () => {
   });
   </script>
   <script>
+  // ===== 回到頂部按鈕：滾動超過一個畫面高度才顯示，點擊平滑回到頂部 =====
+  (function(){
+    const btn = document.getElementById('toTopBtn');
+    if (!btn) return;
+    function toggleBtn(){
+      if (window.scrollY > window.innerHeight * 0.6) btn.classList.add('show');
+      else btn.classList.remove('show');
+    }
+    window.addEventListener('scroll', toggleBtn, { passive:true });
+    toggleBtn();
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top:0, behavior:'smooth' });
+    });
+  })();
+
   document.getElementById('nav-toggle').addEventListener('click', () => {
     document.querySelector('.nav-links').classList.toggle('open');
   });
