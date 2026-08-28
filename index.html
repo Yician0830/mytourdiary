@@ -577,6 +577,28 @@
   .share-menu button:first-child{ border-top:none; }
   .share-menu button:hover{ background:var(--paper-2); }
 
+  /* ===== 巡演足跡地圖 ===== */
+  .tour-map-wrap{ position:relative; max-width:340px; margin:0 auto; padding:10px 0 4px; }
+  .tour-map-svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .tour-map-island{ fill:var(--paper-2); stroke:var(--line-strong); stroke-width:1.2; }
+  .tour-map-pin{ cursor:pointer; }
+  .tour-map-dot{ fill:var(--press); stroke:var(--paper); stroke-width:2; transition:fill .15s; }
+  .tour-map-dot-pulse{
+    fill:none; stroke:var(--press); stroke-width:1.4; opacity:0.55;
+    transform-box:fill-box; transform-origin:center;
+    animation:tourMapPulse 2.4s ease-out infinite;
+  }
+  @keyframes tourMapPulse{
+    0%{ transform:scale(1); opacity:0.5; }
+    100%{ transform:scale(2.6); opacity:0; }
+  }
+  .tour-map-label{
+    font-family:var(--mono); font-size:9px; fill:var(--ink);
+    letter-spacing:0.02em; pointer-events:none;
+  }
+  .tour-map-pin:hover .tour-map-dot{ fill:var(--lcd); }
+  .tour-map-pin:hover .tour-map-label{ fill:var(--press); }
+
   .search-input{
     width:100%; padding:13px 16px; font-family:var(--mono); font-size:13px;
     background:var(--paper); border:1px solid var(--line-strong); color:var(--ink);
@@ -623,6 +645,7 @@
   <div class="nav-links">
     <a href="#toc">目次</a>
     <a href="#timeline">總覽</a>
+    <a href="#map">地圖</a>
     <a href="#stage">舞台</a>
     <a href="#fanmeet">見面會</a>
     <a href="#school">校唱</a>
@@ -708,6 +731,21 @@
         <div class="pg">P. 05</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
       </div>
 
+    </section>
+
+    <!-- ===== 巡演足跡地圖 ===== -->
+    <section id="map" class="reveal" style="padding-top:36px;">
+      <div class="section-head" style="margin-top:0;">
+        <div><div class="num">Footprint</div><h3>巡演足跡</h3></div>
+        <div class="desc">點一個城市，回顧當地那一場</div>
+      </div>
+      <div class="tour-map-wrap">
+        <svg class="tour-map-svg" viewBox="0 0 300 500" xmlns="http://www.w3.org/2000/svg">
+          <path class="tour-map-island" d="M170,20 C230,40 250,120 230,220 C210,320 170,420 120,480 C90,430 60,340 50,240 C40,140 70,50 170,20 Z"></path>
+          <g id="tour-map-markers"></g>
+        </svg>
+        <div class="empty-note" id="tour-map-empty" style="display:none; margin-top:14px;">尚未有可辨識城市的場次紀錄</div>
+      </div>
     </section>
 
     <!-- ===== SEARCH ===== -->
@@ -1527,6 +1565,7 @@ const grids = {
       return {
         title: first.title || '未命名場次',
         venue: first.venue || '',
+        city: first.city || '',
         datetime: first.datetime || '',
         categories: Array.from(new Set(group.map(p => p.category))),
         count: group.length,
@@ -1604,6 +1643,85 @@ const grids = {
     });
   }
 
+  // ===== 巡演足跡地圖：把場次的「地點」文字比對到城市，畫在簡化版台灣地圖上 =====
+  // 座標是依各城市大致經緯度換算成 SVG viewBox 內的位置（示意用，非精確地理位置）
+  const CITY_COORDS = {
+    '台北': { x: 211.6, y: 56.7 },  '新北': { x: 200.6, y: 59.4 },
+    '基隆': { x: 231.4, y: 43.1 },  '桃園': { x: 184.1, y: 62.1 },
+    '新竹': { x: 146.7, y: 87.6 },  '苗栗': { x: 130.2, y: 120.2 },
+    '台中': { x: 113.7, y: 175.6 }, '彰化': { x: 99.4,  y: 185.1 },
+    '南投': { x: 114.8, y: 201.4 }, '雲林': { x: 87.3,  y: 235.2 },
+    '嘉義': { x: 89.5,  y: 266.4 }, '台南': { x: 63.1,  y: 332.6 },
+    '高雄': { x: 73,    y: 381.3 }, '屏東': { x: 100.5, y: 392.1 },
+    '宜蘭': { x: 232.5, y: 94.4 },  '花蓮': { x: 216,   y: 197.4 },
+    '台東': { x: 166.5, y: 363.6 },
+  };
+
+  // 常見場館關鍵字 → 城市。找不到就退而求其次，直接檢查地點字串裡有沒有出現城市名本身。
+  // 之後遇到新場館可以直接在這裡補一行對照即可。
+  const VENUE_CITY_MAP = {
+    '小巨蛋': '台北', '中山堂': '台北', 'LiLA': '台北', '信義': '台北', '大巨蛋': '台北',
+    '流行音樂中心': '高雄', '巨蛋': '高雄', '夢時代': '高雄', '衛武營': '高雄',
+    '國賓': '台中', '滿地紅': '台中', '圓滿劇場': '台中', '洲際棒球場': '台中',
+    '文化中心': '台南',
+  };
+
+  function guessCity(venue){
+    if (!venue) return null;
+    for (const key in VENUE_CITY_MAP){
+      if (venue.includes(key)) return VENUE_CITY_MAP[key];
+    }
+    for (const city in CITY_COORDS){
+      if (venue.includes(city)) return city;
+    }
+    return null;
+  }
+
+  function renderTourMap(all){
+    const markersEl = document.getElementById('tour-map-markers');
+    const emptyNote = document.getElementById('tour-map-empty');
+    if (!markersEl) return;
+
+    const entries = buildTimelineEntries(all);
+    const cityEntries = new Map(); // city -> [entry, entry, ...]
+    entries.forEach(en => {
+      const city = (en.city && CITY_COORDS[en.city]) ? en.city : guessCity(en.venue);
+      if (!city || !CITY_COORDS[city]) return;
+      if (!cityEntries.has(city)) cityEntries.set(city, []);
+      cityEntries.get(city).push(en);
+    });
+
+    if (!cityEntries.size){
+      markersEl.innerHTML = '';
+      if (emptyNote) emptyNote.style.display = '';
+      return;
+    }
+    if (emptyNote) emptyNote.style.display = 'none';
+
+    const maxCount = Math.max(...[...cityEntries.values()].map(list => list.length));
+    markersEl.innerHTML = [...cityEntries.entries()].map(([city, list]) => {
+      const { x, y } = CITY_COORDS[city];
+      const r = 5 + (list.length / maxCount) * 8;
+      return `
+        <g class="tour-map-pin" data-city="${escapeHTML(city)}" transform="translate(${x},${y})">
+          <circle class="tour-map-dot-pulse" r="${r}"></circle>
+          <circle class="tour-map-dot" r="${r}"></circle>
+          <text class="tour-map-label" y="${-(r + 8)}" text-anchor="middle">${escapeHTML(city)} · ${list.length}</text>
+        </g>`;
+    }).join('');
+
+    markersEl.querySelectorAll('.tour-map-pin').forEach(pin => {
+      pin.addEventListener('click', () => {
+        const list = cityEntries.get(pin.dataset.city);
+        const entry = list && list[0];
+        if (!entry || !entry.group.length) return;
+        window.lightboxGroup = entry.group.length > 1 ? entry.group : null;
+        window.lightboxIndex = 0;
+        showLightboxPhoto(entry.group[0]);
+        document.getElementById('lightbox').classList.add('open');
+      });
+    });
+  }
   // 從 datetime 字串擷取「純日期」數值（忽略時分），用來判斷是否為同一天
   // 支援 "2026.08.17 19:42"、"'24.08.17 19:42"、"24.08.17" 等常見寫法
   function extractDateOnly(str){
@@ -1724,6 +1842,7 @@ if (coverPreview && all.length){
 
     latestAllPhotos = all;
     renderTimeline(all);
+    renderTourMap(all);
     renderTagFilter(all);
     renderArtistFilter(all);
     applyFilters();

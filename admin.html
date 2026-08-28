@@ -213,6 +213,29 @@
           <label>地點</label>
           <input type="text" id="f-venue" placeholder="例如：高雄巨蛋">
            </div>
+        <div class="field">
+          <label>城市（用來畫「巡演足跡地圖」，選了地圖才會準）</label>
+          <select id="f-city">
+            <option value="">— 未選擇（地圖會用地點文字猜）—</option>
+            <option value="台北">台北</option>
+            <option value="新北">新北</option>
+            <option value="基隆">基隆</option>
+            <option value="桃園">桃園</option>
+            <option value="新竹">新竹</option>
+            <option value="苗栗">苗栗</option>
+            <option value="台中">台中</option>
+            <option value="彰化">彰化</option>
+            <option value="南投">南投</option>
+            <option value="雲林">雲林</option>
+            <option value="嘉義">嘉義</option>
+            <option value="台南">台南</option>
+            <option value="高雄">高雄</option>
+            <option value="屏東">屏東</option>
+            <option value="宜蘭">宜蘭</option>
+            <option value="花蓮">花蓮</option>
+            <option value="台東">台東</option>
+          </select>
+        </div>
       <div class="field">
         <label>拍攝設備</label>
         <input type="text" id="f-equipment" placeholder="例如：Canon R6 + RF 100-500mm">
@@ -286,6 +309,29 @@
     <div class="field">
       <label>地點</label>
       <input type="text" id="e-venue">
+    </div>
+    <div class="field">
+      <label>城市</label>
+      <select id="e-city">
+        <option value="">— 未選擇（地圖會用地點文字猜）—</option>
+        <option value="台北">台北</option>
+        <option value="新北">新北</option>
+        <option value="基隆">基隆</option>
+        <option value="桃園">桃園</option>
+        <option value="新竹">新竹</option>
+        <option value="苗栗">苗栗</option>
+        <option value="台中">台中</option>
+        <option value="彰化">彰化</option>
+        <option value="南投">南投</option>
+        <option value="雲林">雲林</option>
+        <option value="嘉義">嘉義</option>
+        <option value="台南">台南</option>
+        <option value="高雄">高雄</option>
+        <option value="屏東">屏東</option>
+        <option value="宜蘭">宜蘭</option>
+        <option value="花蓮">花蓮</option>
+        <option value="台東">台東</option>
+      </select>
     </div>
     <div class="field">
       <label>拍攝設備</label>
@@ -431,6 +477,7 @@
     const title = document.getElementById('f-title').value.trim();
     const song = document.getElementById('f-song').value.trim();
     const venue = document.getElementById('f-venue').value.trim();
+    const city = document.getElementById('f-city').value.trim();
     const equipment = document.getElementById('f-equipment').value.trim();
     const seat = document.getElementById('f-seat').value.trim();
     const link = document.getElementById('f-link').value.trim();
@@ -445,7 +492,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, artist, datetime, title, song, venue, equipment, seat, link, tags,
+          url, category, artist, datetime, title, song, venue, city, equipment, seat, link, tags,
           createdAt: serverTimestamp()
         });
         done++;
@@ -464,6 +511,7 @@
      document.getElementById('f-artist').value = '';
      document.getElementById('f-song').value = '';
      document.getElementById('f-venue').value = '';
+     document.getElementById('f-city').value = '';
     document.getElementById('f-equipment').value = '';
     document.getElementById('f-seat').value = '';
     document.getElementById('f-link').value = '';
@@ -620,6 +668,7 @@
           <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
           ${p.artist ? `<div class="m" style="margin-top:2px;">👤 ${escapeHTML(p.artist)}</div>` : ''}
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
+          ${p.city ? `<div class="m">📍 ${escapeHTML(p.city)}</div>` : ''}
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
         </div>
         <div class="btn-row">
@@ -648,6 +697,7 @@
   const eTitle = document.getElementById('e-title');
   const eSong = document.getElementById('e-song');
   const eVenue = document.getElementById('e-venue');
+  const eCity = document.getElementById('e-city');
   const eEquipment = document.getElementById('e-equipment');
   const eSeat = document.getElementById('e-seat');
     const eLink = document.getElementById('e-link');
@@ -666,6 +716,7 @@
     eTitle.value = p.title || '';
     eSong.value = p.song || '';
     eVenue.value = p.venue || '';
+    eCity.value = p.city || '';
     toggleESongField();
     eEquipment.value = p.equipment || '';
     eSeat.value = p.seat || '';
@@ -694,6 +745,7 @@
         title: eTitle.value.trim(),
         song: eSong.value.trim(),
         venue: eVenue.value.trim(),
+        city: eCity.value.trim(),
          equipment: eEquipment.value.trim(),
         seat: eSeat.value.trim(),
         link: eLink.value.trim(),
