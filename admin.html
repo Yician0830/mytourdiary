@@ -221,6 +221,7 @@
   <option value="stage">舞台焦點 On Stage</option>
    <option value="fanmeet">近距離 Face to Face</option>
   <option value="school">校唱 School Sing</option>          
+  <option value="presser">記者會 Press Conference</option>
   <option value="airport">飛行日記 Candid</option>
   <option value="fancam">直拍精選 Fancam</option>
 </select>
@@ -268,6 +269,27 @@
         <label>拍攝設備</label>
         <input type="text" id="f-equipment" placeholder="例如：Canon R6 + RF 100-500mm">
       </div>
+      <div class="field full">
+        <label>EXIF 攝影參數</label>
+        <input type="text" id="f-exif" placeholder="例如：f/2.8 · 1/500s · ISO 800 · 200mm">
+      </div>
+      <div class="field">
+        <label>室內／室外</label>
+        <select id="f-location-type">
+          <option value="">— 未選擇 —</option>
+          <option value="indoor">室內</option>
+          <option value="outdoor">室外</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>拍攝距離</label>
+        <select id="f-distance">
+          <option value="">— 未選擇 —</option>
+          <option value="far">遠</option>
+          <option value="medium">中</option>
+          <option value="near">近</option>
+        </select>
+      </div>
       <div class="field">
         <label>座位</label>
         <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
@@ -313,6 +335,7 @@
   <button data-cat="stage">舞台</button>
   <button data-cat="fanmeet">見面會</button>         
   <button data-cat="school">校唱</button>  
+  <button data-cat="presser">記者會</button>
   <button data-cat="airport">機場</button>
   <button data-cat="fancam">直拍</button>
 </div>
@@ -339,6 +362,7 @@
   <option value="stage">舞台焦點 On Stage</option>
   <option value="fanmeet">近距離 Face to Face</option>
   <option value="school">校唱 School Sing</option>   <!-- 新增這行 -->     
+  <option value="presser">記者會 Press Conference</option>
   <option value="airport">飛行日記 Candid</option>
   <option value="fancam">直拍精選 Fancam</option>
 </select>
@@ -385,6 +409,27 @@
     <div class="field">
       <label>拍攝設備</label>
       <input type="text" id="e-equipment">
+    </div>
+    <div class="field">
+      <label>EXIF 攝影參數</label>
+      <input type="text" id="e-exif" placeholder="例如：f/2.8 · 1/500s · ISO 800 · 200mm">
+    </div>
+    <div class="field">
+      <label>室內／室外</label>
+      <select id="e-location-type">
+        <option value="">— 未選擇 —</option>
+        <option value="indoor">室內</option>
+        <option value="outdoor">室外</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>拍攝距離</label>
+      <select id="e-distance">
+        <option value="">— 未選擇 —</option>
+        <option value="far">遠</option>
+        <option value="medium">中</option>
+        <option value="near">近</option>
+      </select>
     </div>
     <div class="field">
       <label>座位</label>
@@ -532,6 +577,9 @@
     const venue = document.getElementById('f-venue').value.trim();
     const city = document.getElementById('f-city').value.trim();
     const equipment = document.getElementById('f-equipment').value.trim();
+    const exif = document.getElementById('f-exif').value.trim();
+    const locationType = document.getElementById('f-location-type').value;
+    const distance = document.getElementById('f-distance').value;
     const seat = document.getElementById('f-seat').value.trim();
     const link = document.getElementById('f-link').value.trim();
     const tags = parseTagsInput(document.getElementById('f-tags').value);
@@ -545,7 +593,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, artist, datetime, title, song, venue, city, equipment, seat, link, tags,
+          url, category, artist, datetime, title, song, venue, city, equipment, exif, locationType, distance, seat, link, tags,
           allowDownload: document.getElementById('f-allow-download').checked,
           createdAt: serverTimestamp()
         });
@@ -567,6 +615,9 @@
      document.getElementById('f-venue').value = '';
      document.getElementById('f-city').value = '';
     document.getElementById('f-equipment').value = '';
+    document.getElementById('f-exif').value = '';
+    document.getElementById('f-location-type').value = '';
+    document.getElementById('f-distance').value = '';
     document.getElementById('f-seat').value = '';
     document.getElementById('f-link').value = '';
     document.getElementById('f-datetime').value = '';
@@ -721,7 +772,9 @@
   setupArtistAutocomplete(document.getElementById('f-artist'), document.getElementById('f-artist-list'));
   setupArtistAutocomplete(document.getElementById('e-artist'), document.getElementById('e-artist-list'));
 
-  const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場', fancam: '直拍精選' };
+  const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', presser: '記者會', airport: '機場', fancam: '直拍精選' };
+  const LOCATION_TYPE_LABEL = { indoor: '室內', outdoor: '室外' };
+  const DISTANCE_LABEL = { far: '遠', medium: '中', near: '近' };
 
   // 後台縮圖優化：照片管理清單只是要給你快速瀏覽/管理，不需要載入原始全尺寸大圖，
   // 用跟公開頁面一樣的縮圖代理服務，把每張縮小成 240px 寬的 webp，大幅減少要下載/解碼的資料量，
@@ -806,6 +859,8 @@
           ${p.artist ? `<div class="m" style="margin-top:2px;">👤 ${escapeHTML(p.artist)}</div>` : ''}
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
           ${p.city ? `<div class="m">📍 ${escapeHTML(p.city)}</div>` : ''}
+          ${p.exif ? `<div class="m">📷 ${escapeHTML(p.exif)}</div>` : ''}
+          ${(p.locationType || p.distance) ? `<div class="m">${LOCATION_TYPE_LABEL[p.locationType] || ''}${(p.locationType && p.distance) ? ' · ' : ''}${p.distance ? '距離：' + (DISTANCE_LABEL[p.distance] || p.distance) : ''}</div>` : ''}
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
           <div class="stats"><span>♥ ${p.likes || 0}</span><span>👁 ${p.views || 0}</span><span>⬇ ${p.downloads || 0}</span></div>
         </div>
@@ -926,6 +981,9 @@
   const eVenue = document.getElementById('e-venue');
   const eCity = document.getElementById('e-city');
   const eEquipment = document.getElementById('e-equipment');
+  const eExif = document.getElementById('e-exif');
+  const eLocationType = document.getElementById('e-location-type');
+  const eDistance = document.getElementById('e-distance');
   const eSeat = document.getElementById('e-seat');
     const eLink = document.getElementById('e-link');
   const eTags = document.getElementById('e-tags');
@@ -947,6 +1005,9 @@
     eCity.value = p.city || '';
     toggleESongField();
     eEquipment.value = p.equipment || '';
+    eExif.value = p.exif || '';
+    eLocationType.value = p.locationType || '';
+    eDistance.value = p.distance || '';
     eSeat.value = p.seat || '';
     eLink.value = p.link || '';
     eTags.value = (p.tags || []).join(', ');
@@ -976,6 +1037,9 @@
         venue: eVenue.value.trim(),
         city: eCity.value.trim(),
          equipment: eEquipment.value.trim(),
+        exif: eExif.value.trim(),
+        locationType: eLocationType.value,
+        distance: eDistance.value,
         seat: eSeat.value.trim(),
         link: eLink.value.trim(),
         tags: parseTagsInput(eTags.value),
