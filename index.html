@@ -1041,8 +1041,8 @@
       const imgAspect = image.width / image.height;
       const offsetSlider = document.getElementById('polaroidOffset');
       const positionControl = document.getElementById('polaroidPositionControl');
-      // 圖片本身已接近正方形時,沒有可調整的裁切空間,隱藏滑桿
-      positionControl.style.display = (Math.abs(imgAspect - 1) < 0.02) ? 'none' : '';
+      // 圖片本身已接近目標裁切比例時,沒有可調整的裁切空間,隱藏滑桿
+      positionControl.style.display = (Math.abs(imgAspect - (820 / 1030)) < 0.02) ? 'none' : '';
       offsetSlider.value = 50;
 
       function draw(offsetPercent){
@@ -1065,27 +1065,29 @@
         ctx.fillRect(cardX, cardY, cardW, cardH);
         ctx.shadowColor = 'transparent'; // 重置陰影
 
-        // 畫相片區域 (1:1 比例,加大)
-        const photoSize = 850;
-        const photoX = cardX + (cardW - photoSize) / 2;
+        // 畫相片區域 (改成長方形,4:5 直式比例,加大)
+        const photoW = 820;
+        const photoH = 1030;
+        const targetAspect = photoW / photoH;
+        const photoX = cardX + (cardW - photoW) / 2;
         const photoY = cardY + 90;
 
         // 保持比例填滿 (Cover) 裁切計算,依 offsetPercent 決定裁切位置
         const p = Math.min(100, Math.max(0, offsetPercent)) / 100;
         let sx, sy, sWidth, sHeight;
-        if (imgAspect > 1) {
+        if (imgAspect > targetAspect) {
           sHeight = image.height;
-          sWidth = image.height;
-          sx = (image.width - image.height) * p;
+          sWidth = image.height * targetAspect;
+          sx = (image.width - sWidth) * p;
           sy = 0;
         } else {
           sWidth = image.width;
-          sHeight = image.width;
+          sHeight = image.width / targetAspect;
           sx = 0;
-          sy = (image.height - image.width) * p;
+          sy = (image.height - sHeight) * p;
         }
 
-        ctx.drawImage(image, sx, sy, sWidth, sHeight, photoX, photoY, photoSize, photoSize);
+        ctx.drawImage(image, sx, sy, sWidth, sHeight, photoX, photoY, photoW, photoH);
 
         // 寫文字：標題與地點/時間(貼近卡片底部)
         const cardBottom = cardY + cardH;
@@ -1122,10 +1124,14 @@
 
           // 若瀏覽器支援原生檔案分享功能，呼叫系統分享功能
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            const { url } = getShareInfo();
+            // 部分分享目標(如 Threads)在附帶檔案分享時會忽略獨立的 url 欄位,
+            // 只顯示 title,因此把相簿名稱與連結一起寫進 text,確保兩者都會帶到。
+            const shareText = title + (meta ? '　' + meta : '') + '\n' + url;
             await navigator.share({
               files: [file],
               title: title,
-              text: 'CHEMERA DIARY'
+              text: shareText
             });
           } else {
             // 備用方案：若不支援 Web Share API (如電腦版瀏覽器)，則執行下載
