@@ -515,7 +515,7 @@
     font-family:var(--mono); font-size:10px; padding:3px 8px; letter-spacing:0.04em;
   }
   .like-badge{
-    position:absolute; left:10px; bottom:9px; z-index:3;
+    position:absolute; left:10px; top:10px; z-index:3;
     font-family:var(--mono); font-size:10px; color:#f4f2ec;
     background:rgba(21,19,15,0.55); padding:3px 8px; letter-spacing:0.04em;
     display:flex; align-items:center; gap:3px;
@@ -1209,7 +1209,9 @@
   // ===== 圖片優化：透過 images.weserv.nl 免費圖片代理,將任意外部圖片
   // 依需要的顯示寬度即時縮圖並轉成 WebP,大幅減少下載流量與加快載入速度。
   // (weserv 也會補上 CORS 標頭,順便修好部分來源圖片在畫布合成/拍立得時的跨域問題)
-  function optimizeImg(url, width){
+  // width 為目標寬度;若同時給 height,會請 weserv 依 width x height 直接裁切(&fit=cover),
+  // 避免橫式照片被縮成很矮的圖後,又被 CSS 拉伸撐高導致模糊。
+  function optimizeImg(url, width, height){
     if (!url || typeof url !== 'string') return url;
     if (url.startsWith('data:') || url.startsWith('blob:')) return url;
     if (url.includes('images.weserv.nl')) return url; // 避免重複包裝
@@ -1217,6 +1219,7 @@
       const stripped = url.replace(/^https?:\/\//i, '');
       let out = 'https://images.weserv.nl/?url=' + encodeURIComponent(stripped) + '&output=webp&q=82';
       if (width) out += '&w=' + Math.round(width);
+      if (height) out += '&h=' + Math.round(height) + '&fit=cover';
       return out;
     } catch (e) {
       return url;
@@ -1272,7 +1275,7 @@
     const searchAttr = escapeHTML([p.title, p.artist, (p.tags || []).join(' ')].filter(Boolean).join(' ').toLowerCase());
     return `
       <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-search="${searchAttr}">
-        <img src="${escapeHTML(optimizeImg(p.url, 500))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
+        <img src="${escapeHTML(optimizeImg(p.url, 700))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="fancam-play">▶</div>
         ${(p.title || p.song) ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title || '')}</span>${p.song ? `<span class="cap-meta">${escapeHTML(p.song)}</span>` : ''}</div>` : ''}
       </a>`;
@@ -1365,7 +1368,7 @@
     const albumModal = document.getElementById('albumModal');
     albumModalTitle.textContent = group[0].title || '';
     albumModalGrid.innerHTML = group.map((p, i) =>
-      `<img src="${escapeHTML(optimizeImg(p.url, 400))}" loading="lazy" decoding="async" data-photo-idx="${i}">`
+      `<img src="${escapeHTML(optimizeImg(p.url, 600))}" loading="lazy" decoding="async" data-photo-idx="${i}">`
     ).join('');
     albumModal.classList.add('open');
 
@@ -1405,7 +1408,7 @@
     const totalLikes = photos.reduce((sum, ph) => sum + (ph.likes || 0), 0);
     return `
       <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}" data-artist="${artistAttr}">
-        <img src="${escapeHTML(optimizeImg(cover.url, 600))}" loading="lazy" decoding="async" alt="${escapeHTML(cover.title || '')}">
+        <img src="${escapeHTML(optimizeImg(cover.url, 800))}" loading="lazy" decoding="async" alt="${escapeHTML(cover.title || '')}">
         <div class="album-badge">📷 ${photos.length} 張</div>
         <div class="like-badge"><span class="like-heart">♥</span> ${totalLikes}</div>
         ${cover.datetime ? `<div class="stamp">${escapeHTML(cover.datetime)}</div>` : ''}
@@ -1419,7 +1422,7 @@
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
       <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}">
-        <img src="${escapeHTML(optimizeImg(p.url, 600))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
+        <img src="${escapeHTML(optimizeImg(p.url, 800))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="like-badge"><span class="like-heart">♥</span> ${p.likes || 0}</div>
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
@@ -1583,7 +1586,7 @@ if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
     const framesHTML = shuffled.slice(0, 7).map(p =>
-        `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(optimizeImg(p.url, 400))}" loading="lazy" decoding="async"></div>`
+        `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(optimizeImg(p.url, 480, 700))}" loading="lazy" decoding="async"></div>`
       ).join('');
   coverPreview.innerHTML = '<div class="cover-bottom-track">' + framesHTML + framesHTML + '</div>';
     }
@@ -1759,7 +1762,7 @@ if (coverPreview && all.length){
         if (match){
           const coverPhoto = matchedPhotos[0];
           const img = el.querySelector('img');
-          const optimizedCover = optimizeImg(coverPhoto.url, 600);
+          const optimizedCover = optimizeImg(coverPhoto.url, 800);
           if (img && img.src !== optimizedCover) img.src = optimizedCover;
           const stampEl = el.querySelector('.stamp');
           if (stampEl) stampEl.textContent = coverPhoto.datetime || '';
