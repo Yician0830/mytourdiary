@@ -9,8 +9,8 @@
 // 才退回先前快取的版本。這樣加到手機主畫面後，只要有網路，
 // 每次打開都會是最新內容，不會被舊版卡住；沒網路時仍可離線開啟。
 
-const SHELL_CACHE = 'chemera-shell-v15';
-const IMAGE_CACHE = 'chemera-images-v15';
+const SHELL_CACHE = 'chemera-shell-v16';
+const IMAGE_CACHE = 'chemera-images-v16';
 
 const SHELL_ASSETS = [
   './',
