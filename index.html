@@ -382,6 +382,13 @@
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
+  .lightbox-share{
+    position:absolute; top:28px; left:36px; z-index:5;
+    font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer;
+    letter-spacing:0.06em; padding:6px 10px; border:1px solid rgba(255,255,255,0.25);
+  }
+  .lightbox-share:hover{ color:#fff; border-color:#fff; }
+
   .search-input{
     width:100%; padding:13px 16px; font-family:var(--mono); font-size:13px;
     background:var(--paper); border:1px solid var(--line-strong); color:var(--ink);
@@ -584,6 +591,7 @@
 <!-- ===== LIGHTBOX ===== -->
 <div class="lightbox" id="lightbox">
   <div class="lightbox-close" id="lightboxClose">關閉 ✕</div>
+  <div class="lightbox-share" id="lightboxShare">🔗 分享連結</div>
   <div class="lightbox-inner">
     <div class="lightbox-counter" id="lightboxCounter"></div>
     <div class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</div>
@@ -627,6 +635,7 @@
           return;
         }
         window.lightboxGroup = null;
+        window.currentPhotoId = f.dataset.photoId || null;
         const flashClass = [...f.classList].find(c=>c.startsWith('flash-')) || '';
         lbFrame.className = 'lightbox-frame flash ' + flashClass;
         const img = f.querySelector('img');
@@ -655,6 +664,26 @@
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeLightbox(); });
+
+  window.currentPhotoId = null;
+  const shareBtn = document.getElementById('lightboxShare');
+  shareBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!window.currentPhotoId) return;
+    const url = location.origin + location.pathname + '?photo=' + encodeURIComponent(window.currentPhotoId);
+    const done = () => {
+      const original = shareBtn.textContent;
+      shareBtn.textContent = '已複製連結 ✓';
+      setTimeout(() => { shareBtn.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => {
+        prompt('複製這個連結：', url);
+      });
+    } else {
+      prompt('複製這個連結：', url);
+    }
+  });
 </script>
 
 <!-- ===== FIREBASE：即時讀取站主上傳的照片（公開頁面只讀,不能寫入） ===== -->
@@ -708,6 +737,7 @@
   window.lightboxIndex = 0;
 
   function showLightboxPhoto(p){
+    window.currentPhotoId = p.id || null;
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const lbFrameEl = document.getElementById('lightboxFrame');
     lbFrameEl.className = 'lightbox-frame flash ' + flashClass;
@@ -837,7 +867,7 @@
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
+      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
         <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
@@ -852,6 +882,7 @@
     const byCategory = { stage: [], airport: [], fanmeet: [], fancam: [] };
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
+      data.id = docSnap.id;
       all.push(data);
       if (byCategory[data.category]) byCategory[data.category].push(data);
     });
@@ -903,9 +934,37 @@ if (coverPreview && all.length){
     applyFilters();
     updateColophonStats(all);
     bindLightbox();
+    handleSharedPhotoLink(all);
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
   });
+
+  let sharedLinkHandled = false;
+  function handleSharedPhotoLink(all){
+    if (sharedLinkHandled) return;
+    const params = new URLSearchParams(location.search);
+    const targetId = params.get('photo');
+    if (!targetId) { sharedLinkHandled = true; return; }
+    const target = all.find(p => p.id === targetId);
+    if (!target) { sharedLinkHandled = true; return; }
+    sharedLinkHandled = true;
+    if (target.category === 'fancam') {
+      if (target.link) window.open(target.link, '_blank');
+      return;
+    }
+    const albumGroup = currentAlbums.find(group => group.some(p => p.id === targetId));
+    if (albumGroup) {
+      window.lightboxGroup = albumGroup;
+      window.lightboxIndex = albumGroup.findIndex(p => p.id === targetId);
+    } else {
+      window.lightboxGroup = null;
+      window.lightboxIndex = 0;
+    }
+    showLightboxPhoto(target);
+    document.getElementById('lightbox').classList.add('open');
+    const targetSection = document.getElementById(target.category);
+    if (targetSection) targetSection.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }
 
   // ===== 拍攝紀錄：更新年份 / 累積場次 自動計算 =====
   // 從 datetime 欄位裡盡量找出年份，支援 "2026.07.18"、"'24.08.17 19:42"、"24.08.17" 等常見寫法
