@@ -559,12 +559,16 @@
   <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
 </section>
 
-<!-- ===== 排序切換 ===== -->
+<!-- ===== 排序切換與重置 ===== -->
 <section id="sort-toggle-wrap" class="wrap tag-filter-wrap reveal">
   <div class="tag-filter-label">瀏覽方式 · View by</div>
-  <div class="tag-filter" id="sort-toggle">
-    <button data-sort="session" class="active">依場次</button>
-    <button data-sort="date">依日期</button>
+  <div class="tag-filter" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div id="sort-toggle" class="tag-filter">
+      <button data-sort="session" class="active">依場次</button>
+      <button data-sort="date">依日期</button>
+    </div>
+    <!-- 新增清除篩選按鈕 -->
+    <button id="reset-filter-btn" style="display:none;" class="tag-filter-btn">✕ 清除篩選</button>
   </div>
 </section>
 
@@ -1552,11 +1556,35 @@ if (coverPreview && all.length){
     });
     const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || !!currentSearchQuery;
     tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
+    const resetBtn = document.getElementById('reset-filter-btn');
+  if (resetBtn) {
+    resetBtn.style.display = filterActive ? 'inline-block' : 'none';
+  }
   }
 
   document.getElementById('search-input').addEventListener('input', (e) => {
     currentSearchQuery = e.target.value.trim().toLowerCase();
     applyFilters();
+    // ===== 新增：清除所有篩選條件的點擊事件 =====
+document.getElementById('reset-filter-btn')?.addEventListener('click', () => {
+  // 1. 重置搜尋欄
+  currentSearchQuery = '';
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) searchInput.value = '';
+
+  // 2. 重置藝人篩選按鈕
+  currentArtistFilter = 'all';
+  document.querySelectorAll('#artist-filter button').forEach(b => {
+    b.classList.toggle('active', b.dataset.artist === 'all');
+  });
+
+  // 3. 重置標籤篩選按鈕與選單
+  currentTagFilter = 'all';
+  renderTagFilter(latestAllPhotos);
+
+  // 4. 重新套用篩選狀態
+  applyFilters();
+});
   });
 
   document.getElementById('sort-toggle').addEventListener('click', (e) => {
