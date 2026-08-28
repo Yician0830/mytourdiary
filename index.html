@@ -3,7 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>_CHEMERA_</title>
+<title>_CHEMERA_ DIARY｜追星拍攝紀錄・場次總覽相簿</title>
+<meta name="description" content="_CHEMERA_ DIARY — 近半年走過的每一站巡演拍攝紀錄,收錄舞台、機場、見面會與直拍精選相簿。">
+
+<!-- ===== Open Graph / 社群分享預覽（LINE、Threads、Facebook 等） ===== -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="_CHEMERA_ DIARY">
+<meta property="og:title" content="_CHEMERA_ DIARY｜追星拍攝紀錄・場次總覽相簿">
+<meta property="og:description" content="近半年走過的每一站巡演拍攝紀錄,收錄舞台、機場、見面會與直拍精選相簿。">
+<meta property="og:image" content="https://yician0830.github.io/mytourdiary/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://yician0830.github.io/mytourdiary/index.html">
+<meta property="og:locale" content="zh_TW">
+
+<!-- ===== X（Twitter）分享卡片 ===== -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="_CHEMERA_ DIARY｜追星拍攝紀錄・場次總覽相簿">
+<meta name="twitter:description" content="近半年走過的每一站巡演拍攝紀錄,收錄舞台、機場、見面會與直拍精選相簿。">
+<meta name="twitter:image" content="https://yician0830.github.io/mytourdiary/og-image.png">
+
 <script>
   // 及早套用深色模式，避免畫面先閃一下亮色再切換
   (function(){
@@ -1633,6 +1652,10 @@ if (coverPreview && all.length){
     document.getElementById('lightbox').classList.add('open');
     const targetSection = document.getElementById(target.category);
     if (targetSection) targetSection.scrollIntoView({ behavior: 'instant', block: 'start' });
+    // 分頁標題換成這張照片的標題,瀏覽器分頁跟使用者再次手動分享時看起來更明確
+    // (注意:這只影響瀏覽器分頁與 navigator.share,無法改變 LINE/Threads 等
+    //  第三方 App 產生連結預覽卡片時看到的圖片與說明文字,那部分是靜態 OG 標籤決定的)
+    if (target.title) document.title = target.title + '｜_CHEMERA_ DIARY';
   }
 
   // ===== 拍攝紀錄：更新年份 / 累積場次 自動計算 =====
