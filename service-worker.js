@@ -3,8 +3,8 @@
 // 並對照片圖片採用「先秀快取、背景更新」策略，兼顧速度與新鮮度。
 // 不快取 Firebase/Firestore 的即時資料請求，避免看到過期的按讚數或照片列表。
 
-const SHELL_CACHE = 'chemera-shell-v10';
-const IMAGE_CACHE = 'chemera-images-v10';
+const SHELL_CACHE = 'chemera-shell-v11';
+const IMAGE_CACHE = 'chemera-images-v11';
 
 const SHELL_ASSETS = [
   './',
