@@ -382,6 +382,25 @@
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
+  .lightbox-share-wrap{ position:absolute; top:28px; left:36px; z-index:5; }
+  .lightbox-share{
+    font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer;
+    letter-spacing:0.06em; padding:6px 10px; border:1px solid rgba(255,255,255,0.25);
+  }
+  .lightbox-share:hover{ color:#fff; border-color:#fff; }
+  .share-menu{
+    display:none; position:absolute; top:100%; left:0; margin-top:6px;
+    background:var(--paper); border:1px solid var(--line-strong); min-width:150px;
+  }
+  .share-menu.open{ display:block; }
+  .share-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    border-top:1px solid var(--line); padding:10px 14px;
+    font-family:var(--sans); font-size:13px; color:var(--ink); cursor:pointer;
+  }
+  .share-menu button:first-child{ border-top:none; }
+  .share-menu button:hover{ background:var(--paper-2); }
+
   .lightbox-share{
     position:absolute; top:28px; left:36px; z-index:5;
     font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer;
@@ -591,7 +610,14 @@
 <!-- ===== LIGHTBOX ===== -->
 <div class="lightbox" id="lightbox">
   <div class="lightbox-close" id="lightboxClose">關閉 ✕</div>
-  <div class="lightbox-share" id="lightboxShare">🔗 分享連結</div>
+  <div class="lightbox-share-wrap">
+    <div class="lightbox-share" id="lightboxShare">🔗 分享</div>
+    <div class="share-menu" id="shareMenu">
+      <button type="button" id="shareThreads">分享到 Threads</button>
+      <button type="button" id="shareX">分享到 X</button>
+      <button type="button" id="shareCopy">複製連結</button>
+    </div>
+  </div>
   <div class="lightbox-inner">
     <div class="lightbox-counter" id="lightboxCounter"></div>
     <div class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</div>
@@ -666,20 +692,56 @@
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeLightbox(); });
 
   window.currentPhotoId = null;
+
+  function getShareInfo(){
+    const url = location.origin + location.pathname + '?photo=' + encodeURIComponent(window.currentPhotoId || '');
+    const title = document.getElementById('lightboxTitle').textContent || '快來看這張照片';
+    return { url, title };
+  }
+
   const shareBtn = document.getElementById('lightboxShare');
+  const shareMenu = document.getElementById('shareMenu');
+
   shareBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!window.currentPhotoId) return;
-    const url = location.origin + location.pathname + '?photo=' + encodeURIComponent(window.currentPhotoId);
+    const { url, title } = getShareInfo();
+    if (navigator.share) {
+      navigator.share({ title, text: title, url }).catch(() => {});
+      return;
+    }
+    shareMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!shareMenu.contains(e.target) && e.target !== shareBtn) shareMenu.classList.remove('open');
+  });
+
+  document.getElementById('shareThreads').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getShareInfo();
+    window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(title + ' ' + url), '_blank');
+    shareMenu.classList.remove('open');
+  });
+
+  document.getElementById('shareX').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getShareInfo();
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url), '_blank');
+    shareMenu.classList.remove('open');
+  });
+
+  document.getElementById('shareCopy').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url } = getShareInfo();
+    const btn = e.target;
     const done = () => {
-      const original = shareBtn.textContent;
-      shareBtn.textContent = '已複製連結 ✓';
-      setTimeout(() => { shareBtn.textContent = original; }, 1500);
+      const original = btn.textContent;
+      btn.textContent = '已複製 ✓';
+      setTimeout(() => { btn.textContent = original; shareMenu.classList.remove('open'); }, 1200);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(done).catch(() => {
-        prompt('複製這個連結：', url);
-      });
+      navigator.clipboard.writeText(url).then(done).catch(() => prompt('複製這個連結：', url));
     } else {
       prompt('複製這個連結：', url);
     }
