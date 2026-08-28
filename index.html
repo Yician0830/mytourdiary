@@ -303,6 +303,48 @@
     letter-spacing:0.06em; border:1px dashed var(--line);
   }
 
+  /* ===== 左右兩欄佈局：左＝場次總覽、右＝目次與各分類 ===== */
+  .split-layout{
+    display:flex; align-items:flex-start; gap:48px;
+    max-width:1180px; margin:0 auto; padding:0 40px;
+  }
+  .split-left{
+    flex:0 0 300px; width:300px;
+    position:sticky; top:90px;
+    max-height:calc(100vh - 120px); overflow-y:auto;
+    padding-right:28px; border-right:1px solid var(--line);
+  }
+  .split-right{ flex:1 1 auto; min-width:0; }
+  .side-head{ padding:60px 0 24px; }
+  .side-head .num{ font-family:var(--mono); font-size:12px; color:var(--press); letter-spacing:0.1em; }
+  .side-head h3{
+    font-family:var(--display); font-weight:900; font-size:clamp(26px,3vw,34px);
+    line-height:1; margin-top:8px;
+  }
+  .side-head .desc{
+    font-family:var(--editorial); font-style:normal; font-size:13px;
+    color:var(--ink-dim); margin-top:10px;
+  }
+  .split-left .timeline-thumb{ width:52px; height:52px; }
+  .split-left .timeline-title{ font-size:16px; }
+  .split-left .timeline-meta{ font-size:11px; }
+  .timeline-older{
+    padding:22px 0 4px 34px; text-align:left;
+    font-family:var(--mono); color:var(--ink-faint); font-size:16px;
+    letter-spacing:0.1em;
+  }
+  .timeline-older span{ display:block; margin-top:6px; font-size:11px; letter-spacing:0.06em; }
+  @media (max-width:900px){
+    .split-layout{ flex-direction:column; gap:0; padding:0 20px; }
+    .split-left{
+      position:static; width:100%; flex-basis:auto;
+      max-height:none; overflow:visible;
+      border-right:none; padding-right:0;
+      border-bottom:1px solid var(--line); padding-bottom:20px; margin-bottom:8px;
+    }
+    .split-right{ width:100%; }
+  }
+
   /* ===== TIMELINE OVERVIEW ===== */
   .timeline-list{ position:relative; padding:10px 0 10px 6px; }
   .timeline-list::before{
@@ -584,132 +626,146 @@
   </div>
 </header>
 
-<!-- ===== TABLE OF CONTENTS ===== -->
-<section id="toc" class="wrap toc reveal">
-  <div class="section-head" style="padding-top:0; margin-top:0; border-top:none;">
-    <div><div class="num">Contents</div><h2 style="font-size:clamp(32px,5vw,56px);">目次</h2></div>
-  </div>
-  <div class="toc-row">
-    <div class="pg">P. 01</div><div class="ti">舞台焦點 — On Stage</div><div class="dots"></div><div class="ct" id="ct-stage">演唱會 · 14 張精選</div>
-  </div>
-  <div class="toc-row">
-    <div class="pg">P. 02</div><div class="ti">飛行日記 — Candid</div><div class="dots"></div><div class="ct" id="ct-airport">機場跟拍 · 0 張精選</div>
-  </div>
-  <div class="toc-row">
-    <div class="pg">P. 03</div><div class="ti">零距離 — Face to Face</div><div class="dots"></div><div class="ct" id="ct-fanmeet">見面會 / 簽售 · 11 張精選</div>
-  </div>
-  <div class="toc-row">
-    <div class="pg">P. 04</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
-  </div>
+<!-- ===== 主要內容：左欄場次總覽 + 右欄目次與各分類 ===== -->
+<div class="split-layout">
 
-</section>
+  <!-- ===== 左欄：場次總覽 ===== -->
+  <aside class="split-left">
+    <section id="timeline">
+      <div class="side-head reveal">
+        <div class="num">05 — Overview</div>
+        <h3>場次總覽</h3>
+        <div class="desc">近一年走過的每一站，方便回顧</div>
+      </div>
+      <div class="timeline-list reveal" id="timeline-list">
+        <div class="empty-note">尚未有場次紀錄</div>
+      </div>
+    </section>
+  </aside>
 
-<!-- ===== SEARCH ===== -->
-<section id="search-wrap" class="wrap" style="padding-top:36px; padding-bottom:0;">
-  <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
-</section>
+  <!-- ===== 右欄：目次 + 各分類 ===== -->
+  <div class="split-right">
 
-<!-- ===== 排序切換與重置 ===== -->
-<section id="sort-toggle-wrap" class="wrap tag-filter-wrap reveal">
-  <div class="tag-filter-label">瀏覽方式 · View by</div>
-  <div class="tag-filter" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-    <div id="sort-toggle" class="tag-filter">
-      <button data-sort="session" class="active">依場次</button>
-      <button data-sort="date">依日期</button>
-    </div>
-    <!-- 新增清除篩選按鈕 -->
-    <button id="reset-filter-btn" style="display:none;" class="tag-filter-btn">✕ 清除篩選</button>
-  </div>
-</section>
+    <!-- ===== TABLE OF CONTENTS ===== -->
+    <section id="toc" class="toc reveal">
+      <div class="section-head" style="padding-top:0; margin-top:0; border-top:none;">
+        <div><div class="num">Contents</div><h2 style="font-size:clamp(32px,5vw,56px);">目次</h2></div>
+      </div>
+      <div class="toc-row">
+        <div class="pg">P. 01</div><div class="ti">舞台焦點 — On Stage</div><div class="dots"></div><div class="ct" id="ct-stage">演唱會 · 14 張精選</div>
+      </div>
+      <div class="toc-row">
+        <div class="pg">P. 02</div><div class="ti">飛行日記 — Candid</div><div class="dots"></div><div class="ct" id="ct-airport">機場跟拍 · 0 張精選</div>
+      </div>
+      <div class="toc-row">
+        <div class="pg">P. 03</div><div class="ti">零距離 — Face to Face</div><div class="dots"></div><div class="ct" id="ct-fanmeet">見面會 / 簽售 · 11 張精選</div>
+      </div>
+      <div class="toc-row">
+        <div class="pg">P. 04</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
+      </div>
 
-<!-- ===== ARTIST FILTER ===== -->
-<section id="artist-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none;">
-  <div class="tag-filter-label">篩選 · Filter by Artist</div>
-  <div class="tag-filter" id="artist-filter">
-    <button data-artist="all" class="active">全部</button>
-  </div>
-</section>
+    </section>
 
-<!-- ===== TAG FILTER ===== -->
-<section id="tag-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none; padding-top:0;">
-  <div class="tag-filter-label">篩選 · Filter by Tag</div>
-  <div class="tag-filter" id="tag-filter">
-    <button data-tag="all" class="active">全部</button>
-  </div>
-  <div class="tag-empty-note" id="tag-empty-note">目前這個篩選條件下還沒有照片</div>
-</section>
+    <!-- ===== SEARCH ===== -->
+    <section id="search-wrap" style="padding-top:36px; padding-bottom:0;">
+      <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
+    </section>
 
-<!-- ===== 01 STAGE ===== -->
-<section id="stage" class="wrap">
-  <div class="section-head reveal">
-    <div><div class="num">01 — On stage</div><h3>舞台焦點</h3></div>
-    <div class="desc">聚光燈落下的千分之一秒</div>
-  </div>
+    <!-- ===== 排序切換與重置 ===== -->
+    <section id="sort-toggle-wrap" class="tag-filter-wrap reveal">
+      <div class="tag-filter-label">瀏覽方式 · View by</div>
+      <div class="tag-filter" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div id="sort-toggle" class="tag-filter">
+          <button data-sort="session" class="active">依場次</button>
+          <button data-sort="date">依日期</button>
+        </div>
+        <!-- 新增清除篩選按鈕 -->
+        <button id="reset-filter-btn" style="display:none;" class="tag-filter-btn">✕ 清除篩選</button>
+      </div>
+    </section>
 
-  <div class="grid3 reveal" id="stage-grid">
-    <!-- 上傳「舞台」分類的照片後會自動顯示在這裡 -->
-    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;19:42</div></div>
-    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:03</div></div>
-    <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:21</div></div>
-  </div>
-</section>
+    <!-- ===== ARTIST FILTER ===== -->
+    <section id="artist-filter-wrap" class="tag-filter-wrap reveal" style="display:none;">
+      <div class="tag-filter-label">篩選 · Filter by Artist</div>
+      <div class="tag-filter" id="artist-filter">
+        <button data-artist="all" class="active">全部</button>
+      </div>
+    </section>
 
-<!-- ===== 02 AIRPORT / CANDID ===== -->
-<section id="airport" class="wrap">
-  <div class="section-head reveal">
-    <div><div class="num">02 — Candid</div><h3>飛行日記</h3></div>
-    <div class="desc">隔著人群，記錄每一次短暫的交集</div>
-  </div>
-  <div class="grid3 reveal" id="airport-grid">
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:18</div></div>
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:21</div></div>
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:24</div></div>
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:02</div></div>
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:05</div></div>
-    <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:09</div></div>
-  </div>
-</section>
+    <!-- ===== TAG FILTER ===== -->
+    <section id="tag-filter-wrap" class="tag-filter-wrap reveal" style="display:none; padding-top:0;">
+      <div class="tag-filter-label">篩選 · Filter by Tag</div>
+      <div class="tag-filter" id="tag-filter">
+        <button data-tag="all" class="active">全部</button>
+      </div>
+      <div class="tag-empty-note" id="tag-empty-note">目前這個篩選條件下還沒有照片</div>
+    </section>
 
-<!-- ===== 03 FANMEET ===== -->
-<section id="fanmeet" class="wrap">
-  <div class="section-head reveal">
-    <div><div class="num">03 — Face to face</div><h3>視線交會</h3></div>
-    <div class="desc">視線交會的千分之一秒</div>
-  </div>
-  <div class="grid3 reveal" id="fanmeet-grid">
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:40</div></div>
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:44</div></div>
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:51</div></div>
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:10</div></div>
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:15</div></div>
-    <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
-  </div>
-</section>
-  
-<!-- ===== 04 FANCAM ===== -->
-<section id="fancam" class="wrap">
-  <div class="section-head reveal">
-    <div><div class="num">04 — Fancam</div><h3>直拍精選</h3></div>
-    <div class="desc">點擊封面前往觀看完整影片。</div>
-  </div>
-  <div class="grid3 reveal" id="fancam-grid">
-    <div class="empty-note">尚未上傳直拍影片</div>
-  </div>
-</section>
+    <!-- ===== 01 STAGE ===== -->
+    <section id="stage">
+      <div class="section-head reveal">
+        <div><div class="num">01 — On stage</div><h3>舞台焦點</h3></div>
+        <div class="desc">聚光燈落下的千分之一秒</div>
+      </div>
 
-<!-- ===== 05 TIMELINE OVERVIEW ===== -->
-<section id="timeline" class="wrap">
-  <div class="section-head reveal">
-    <div><div class="num">05 — Overview</div><h3>場次總覽</h3></div>
-    <div class="desc">依時間整理走過的每一站，方便回顧</div>
+      <div class="grid3 reveal" id="stage-grid">
+        <!-- 上傳「舞台」分類的照片後會自動顯示在這裡 -->
+        <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;19:42</div></div>
+        <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:03</div></div>
+        <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:21</div></div>
+      </div>
+    </section>
+
+    <!-- ===== 02 AIRPORT / CANDID ===== -->
+    <section id="airport">
+      <div class="section-head reveal">
+        <div><div class="num">02 — Candid</div><h3>飛行日記</h3></div>
+        <div class="desc">隔著人群，記錄每一次短暫的交集</div>
+      </div>
+      <div class="grid3 reveal" id="airport-grid">
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:18</div></div>
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:21</div></div>
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.03.02&nbsp;05:24</div></div>
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:02</div></div>
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:05</div></div>
+        <div class="cell flash flash-airport"><div class="placeholder-mark">替換為機場照片</div><div class="stamp">'24.05.11&nbsp;14:09</div></div>
+      </div>
+    </section>
+
+    <!-- ===== 03 FANMEET ===== -->
+    <section id="fanmeet">
+      <div class="section-head reveal">
+        <div><div class="num">03 — Face to face</div><h3>視線交會</h3></div>
+        <div class="desc">視線交會的千分之一秒</div>
+      </div>
+      <div class="grid3 reveal" id="fanmeet-grid">
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:40</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:44</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:51</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:10</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:15</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
+      </div>
+    </section>
+
+    <!-- ===== 04 FANCAM ===== -->
+    <section id="fancam">
+      <div class="section-head reveal">
+        <div><div class="num">04 — Fancam</div><h3>直拍精選</h3></div>
+        <div class="desc">點擊封面前往觀看完整影片。</div>
+      </div>
+      <div class="grid3 reveal" id="fancam-grid">
+        <div class="empty-note">尚未上傳直拍影片</div>
+      </div>
+    </section>
+
   </div>
-  <div class="timeline-list reveal" id="timeline-list">
-    <div class="empty-note">尚未有場次紀錄</div>
-  </div>
-</section>
+</div>
+
 <!-- ===== COLOPHON ===== -->
 <div class="wrap">
 <div class="colophon reveal">
+
   <div>
     <h3>拍攝器材</h3>
     <ul>
@@ -1360,6 +1416,18 @@
     return entries;
   }
 
+  // 把 datetime 字串（例如 '24.08.17 19:42）解析成實際日期，用來判斷是否在近一年內
+  function parseTimelineDate(str){
+    if (!str) return null;
+    let m = str.match(/(20\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = str.match(/'(\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) return new Date(2000 + +m[1], +m[2] - 1, +m[3]);
+    m = str.match(/^\s*(\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) return new Date(2000 + +m[1], +m[2] - 1, +m[3]);
+    return null;
+  }
+
   function renderTimeline(all){
     const listEl = document.getElementById('timeline-list');
     if (!listEl) return;
@@ -1368,7 +1436,18 @@
       listEl.innerHTML = '<div class="empty-note">尚未有場次紀錄</div>';
       return;
     }
-    listEl.innerHTML = entries.map(en => `
+
+    // 只完整顯示近一年的場次，更早的用「⋯⋯」代表，不展開列出
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const recent = [];
+    const older = [];
+    entries.forEach(en => {
+      const d = parseTimelineDate(en.datetime);
+      if (d && d < cutoff) older.push(en); else recent.push(en);
+    });
+
+    const itemsHTML = recent.map(en => `
       <div class="timeline-item">
         <div class="timeline-date">${escapeHTML(en.datetime || '日期未提供')}</div>
         <div class="timeline-item-inner">
@@ -1384,9 +1463,15 @@
         </div>
       </div>`).join('');
 
+    const olderHTML = older.length
+      ? `<div class="timeline-older">⋯⋯<span>${older.length} 個更早的場次</span></div>`
+      : '';
+
+    listEl.innerHTML = itemsHTML + olderHTML;
+
     listEl.querySelectorAll('.timeline-item').forEach((el, i) => {
       el.addEventListener('click', () => {
-        const entry = entries[i];
+        const entry = recent[i];
         if (!entry.group.length) return;
         window.lightboxGroup = entry.group.length > 1 ? entry.group : null;
         window.lightboxIndex = 0;
