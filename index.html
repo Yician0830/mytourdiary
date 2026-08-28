@@ -467,9 +467,27 @@
   ::-webkit-scrollbar{ width:9px; }
   ::-webkit-scrollbar-track{ background:var(--paper); }
   ::-webkit-scrollbar-thumb{ background:#c7c1af; }
+
+  /* ===== POLAROID MODAL (IG 限動分享卡片) ===== */
+  .polaroid-modal{
+    position:fixed; inset:0; z-index:300;
+    background:rgba(0,0,0,0.85);
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .polaroid-modal.open{ display:flex; }
+  .polaroid-modal-inner{
+    background:var(--paper); padding:24px; max-width:400px; width:100%;
+    text-align:center; position:relative; border-radius:4px;
+  }
+  .polaroid-modal-title{ font-family:var(--mono); font-size:13px; margin-bottom:12px; color:var(--ink); }
+  .polaroid-preview-img{ width:100%; height:auto; max-height:60vh; object-fit:contain; border:1px solid var(--line); margin-bottom:16px; }
+  .polaroid-btn{
+    display:inline-block; font-family:var(--mono); font-size:12px; padding:8px 16px;
+    background:var(--ink); color:var(--paper); border:none; cursor:pointer; text-decoration:none;
+  }
+  .polaroid-btn:hover{ background:var(--press); }
 </style>
-  <!-- 引入 html2canvas 庫用於合成與輸出圖片 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -684,8 +702,8 @@
   <div class="lightbox-share-wrap">
     <div class="lightbox-share lightbox-like" id="lightboxLike"><span class="like-heart">♡</span> <span class="like-count">0</span></div>
     <div class="lightbox-share" id="lightboxShare">🔗 分享</div>
+    <div class="lightbox-share" id="lightboxPolaroid">📸 IG拍立得</div>
     <div class="share-menu" id="shareMenu">
-      <button type="button" id="shareStory">📸 匯出 IG 限動拍立得卡片</button>
       <button type="button" id="shareThreads">分享到 Threads</button>
       <button type="button" id="shareX">分享到 X</button>
       <button type="button" id="shareCopy">複製連結</button>
@@ -706,6 +724,16 @@
   <div class="lightbox-inner" style="max-width:900px;">
     <h3 id="albumModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:16px; text-align:center; font-size:22px;"></h3>
     <div class="album-modal-grid" id="albumModalGrid"></div>
+  </div>
+</div>
+
+<!-- ===== POLAROID PREVIEW MODAL ===== -->
+<div class="polaroid-modal" id="polaroidModal">
+  <div class="polaroid-modal-inner">
+    <div class="lightbox-close" id="polaroidClose" style="top:12px; right:16px; color:var(--ink);">✕</div>
+    <div class="polaroid-modal-title">IG 限動 9:16 拍立得圖卡</div>
+    <img id="polaroidImg" class="polaroid-preview-img" src="" alt="拍立得預覽">
+    <a id="polaroidDownloadBtn" class="polaroid-btn" download="polaroid-story.png">下載卡片分享至 IG</a>
   </div>
 </div>
 
@@ -836,87 +864,101 @@
       btn.textContent = '已複製 ✓';
       setTimeout(() => { btn.textContent = original; shareMenu.classList.remove('open'); }, 1200);
     };
-    // ===== 匯出 9:16 IG 限動拍立得卡片邏輯 =====
-  async function exportStoryCard() {
-    const imgEl = document.querySelector('#lightboxFrame img');
-    if (!imgEl || !imgEl.src) return;
-
-    const title = document.getElementById('lightboxTitle').textContent || '';
-    const meta = document.getElementById('lightboxMeta').textContent || '';
-    const extra = document.getElementById('lightboxExtra').innerText || '';
-
-    // 提示使用者正在生成
-    const btn = document.getElementById('shareStory');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ 卡片繪製中...';
-
-    // 建立 9:16 的拍立得模板 (1080x1920 高畫質規格)
-    const card = document.createElement('div');
-    card.style.cssText = `
-      position: fixed; left: -9999px; top: -9999px; z-index: -9999;
-      width: 1080px; height: 1920px; background: #15130f;
-      padding: 100px 70px; display: flex; flex-direction: column;
-      justify-content: space-between; font-family: 'Fredoka', 'Zen Maru Gothic', sans-serif;
-      color: #f4f2ec; box-sizing: border-box;
-    `;
-
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(244,242,236,0.15); padding-bottom: 30px;">
-        <div style="font-size: 38px; font-weight: bold; letter-spacing: 0.08em; color: #cc2036;">_CHEMERA_DIARY</div>
-        <div style="font-size: 26px; color: #96907d; font-family: monospace;">FAN ACCOUNT</div>
-      </div>
-
-      <div style="width: 100%; height: 1180px; background: #1e1b18; padding: 24px 24px 70px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        <div style="width: 100%; height: 100%; overflow: hidden; position: relative;">
-          <img src="${imgEl.src}" style="width: 100%; height: 100%; object-fit: cover; display: block;" crossorigin="anonymous">
-        </div>
-      </div>
-
-      <div style="padding: 10px 10px 30px;">
-        <div style="font-size: 46px; font-weight: 700; color: #f4f2ec; line-height: 1.3; margin-bottom: 16px;">${title}</div>
-        <div style="font-size: 28px; color: #e8850f; font-family: monospace; margin-bottom: 12px;">${meta}</div>
-        ${extra ? `<div style="font-size: 24px; color: #96907d; font-family: monospace; line-height: 1.6;">${extra.replace(/\n/g, ' · ')}</div>` : ''}
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(244,242,236,0.15); padding-top: 24px; font-size: 22px; color: #96907d; font-family: monospace;">
-        <div>VOL. 0830 — TOUR DIARY</div>
-        <div>yician0830.github.io/mytourdiary</div>
-      </div>
-    `;
-
-    document.body.appendChild(card);
-
-    try {
-      const canvas = await html2canvas(card, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 1,
-        backgroundColor: '#15130f'
-      });
-
-      const link = document.createElement('a');
-      link.download = `CHEMERA_STORY_${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (err) {
-      console.error('生成圖片失敗：', err);
-      alert('生成圖片失敗，可能是因為跨來源圖片限制。');
-    } finally {
-      document.body.removeChild(card);
-      btn.textContent = originalText;
-      shareMenu.classList.remove('open');
-    }
-  }
-
-  // 綁定按鈕點擊事件
-  document.getElementById('shareStory').addEventListener('click', (e) => {
-    e.stopPropagation();
-    exportStoryCard();
-  });
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(done).catch(() => prompt('複製這個連結：', url));
     } else {
       prompt('複製這個連結：', url);
+    }
+  });
+
+  /* ===== IG 限動 9:16 拍立得卡片生成 Logic ===== */
+  document.getElementById('lightboxPolaroid').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const imgEl = document.querySelector('#lightboxFrame img');
+    if (!imgEl || !imgEl.src) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+
+    // 背景色
+    ctx.fillStyle = '#f4f2ec';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.src = imgEl.src;
+    image.onload = () => {
+      // 拍立得白框尺寸
+      const cardW = 900;
+      const cardH = 1200;
+      const cardX = (1080 - cardW) / 2;
+      const cardY = 300;
+
+      // 畫白框陰影與底色
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetY = 15;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cardX, cardY, cardW, cardH);
+      ctx.shadowColor = 'transparent'; // 重置陰影
+
+      // 畫相片區域 (1:1 比例)
+      const photoSize = 780;
+      const photoX = cardX + (cardW - photoSize) / 2;
+      const photoY = cardY + 60;
+
+      // 保持比例填滿 (Cover) 裁切計算
+      let sx, sy, sWidth, sHeight;
+      const imgAspect = image.width / image.height;
+      if (imgAspect > 1) {
+        sHeight = image.height;
+        sWidth = image.height;
+        sx = (image.width - image.height) / 2;
+        sy = 0;
+      } else {
+        sWidth = image.width;
+        sHeight = image.width;
+        sx = 0;
+        sy = (image.height - image.width) / 2;
+      }
+
+      ctx.drawImage(image, sx, sy, sWidth, sHeight, photoX, photoY, photoSize, photoSize);
+
+      // 寫文字：標題與地點/時間
+      const title = document.getElementById('lightboxTitle').textContent || '_CHEMERA_';
+      const meta = document.getElementById('lightboxMeta').textContent || '';
+
+      ctx.fillStyle = '#15130f';
+      ctx.font = 'bold 36px "Zen Maru Gothic", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(title, photoX, photoY + photoSize + 80);
+
+      ctx.fillStyle = '#888888';
+      ctx.font = '24px "Fredoka", monospace';
+      ctx.fillText(meta, photoX, photoY + photoSize + 130);
+
+      // 頁尾品牌 Mark
+      ctx.fillStyle = '#cc2036';
+      ctx.font = 'bold 28px "Archivo Black", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('_CHEMERA_ DIARY', 540, 1750);
+
+      // 轉為圖片 Data URL 並顯示
+      const dataUrl = canvas.toDataURL('image/png');
+      document.getElementById('polaroidImg').src = dataUrl;
+      document.getElementById('polaroidDownloadBtn').href = dataUrl;
+      document.getElementById('polaroidModal').classList.add('open');
+    };
+  });
+
+  document.getElementById('polaroidClose').addEventListener('click', () => {
+    document.getElementById('polaroidModal').classList.remove('open');
+  });
+  document.getElementById('polaroidModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('polaroidModal')) {
+      document.getElementById('polaroidModal').classList.remove('open');
     }
   });
 </script>
