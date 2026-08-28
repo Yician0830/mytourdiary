@@ -1659,26 +1659,27 @@ if (coverPreview && all.length){
   document.getElementById('search-input').addEventListener('input', (e) => {
     currentSearchQuery = e.target.value.trim().toLowerCase();
     applyFilters();
-    // ===== 新增：清除所有篩選條件的點擊事件 =====
-document.getElementById('reset-filter-btn')?.addEventListener('click', () => {
-  // 1. 重置搜尋欄
-  currentSearchQuery = '';
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) searchInput.value = '';
-
-  // 2. 重置藝人篩選按鈕
-  currentArtistFilter = 'all';
-  document.querySelectorAll('#artist-filter button').forEach(b => {
-    b.classList.toggle('active', b.dataset.artist === 'all');
   });
 
-  // 3. 重置標籤篩選按鈕與選單
-  currentTagFilter = 'all';
-  renderTagFilter(latestAllPhotos);
+  // ===== 清除所有篩選條件的點擊事件（獨立綁定一次，不依賴搜尋框有沒有輸入過）=====
+  document.getElementById('reset-filter-btn')?.addEventListener('click', () => {
+    // 1. 重置搜尋欄
+    currentSearchQuery = '';
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
 
-  // 4. 重新套用篩選狀態
-  applyFilters();
-});
+    // 2. 重置藝人篩選按鈕
+    currentArtistFilter = 'all';
+    document.querySelectorAll('#artist-filter button').forEach(b => {
+      b.classList.toggle('active', b.dataset.artist === 'all');
+    });
+
+    // 3. 重置標籤篩選按鈕與選單
+    currentTagFilter = 'all';
+    renderTagFilter(latestAllPhotos);
+
+    // 4. 重新套用篩選狀態
+    applyFilters();
   });
 
   document.getElementById('sort-toggle').addEventListener('click', (e) => {
