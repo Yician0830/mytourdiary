@@ -667,11 +667,25 @@
     if(syncStarted) return;
     syncStarted = true;
     const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
+    // 公開頁面上讀者每按一次讚／看一張照片／下載一次，都會觸發這裡即時更新一次。
+    // 如果同時有很多讀者在瀏覽，這裡可能短時間內被觸發很多次，若每次都整個重繪照片清單會很卡，
+    // 所以用「延遲合併」的方式：短時間內的多次更新只重繪最後一次；但也設一個上限，
+    // 避免流量一直沒停過導致畫面遲遲不更新。
+    let renderTimer = null;
+    let lastRenderAt = 0;
+    function scheduleRender(){
+      clearTimeout(renderTimer);
+      const wait = (Date.now() - lastRenderAt > 1200) ? 0 : 400;
+      renderTimer = setTimeout(() => {
+        renderPhotoList();
+        renderArtistDatalist();
+        lastRenderAt = Date.now();
+      }, wait);
+    }
     onSnapshot(q, (snapshot) => {
       allPhotos = [];
       snapshot.forEach(docSnap => allPhotos.push({ id: docSnap.id, ...docSnap.data() }));
-      renderPhotoList();
-      renderArtistDatalist();
+      scheduleRender();
     });
   }
 
