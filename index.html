@@ -59,7 +59,7 @@
   }
   ::selection{ background:var(--press); color:var(--paper); }
   a{ color:inherit; text-decoration:none; }
-  .wrap{ max-width:1180px; margin:0 auto; padding:0 40px; }
+  .wrap{ max-width:1600px; margin:0 auto; padding:0 56px; }
   @media (max-width:640px){ .wrap{ padding:0 20px; } }
   img{ display:block; width:100%; height:100%; object-fit:contain; }
 
@@ -306,7 +306,7 @@
   /* ===== 左右兩欄佈局：左＝場次總覽、右＝目次與各分類 ===== */
   .split-layout{
     display:flex; align-items:flex-start; gap:48px;
-    max-width:1180px; margin:0 auto; padding:0 40px;
+    max-width:1600px; margin:0 auto; padding:0 56px;
   }
   .split-left{
     flex:0 0 300px; width:300px;
@@ -635,7 +635,7 @@
       <div class="side-head reveal">
         <div class="num">05 — Overview</div>
         <h3>場次總覽</h3>
-        <div class="desc">近一年走過的每一站，方便回顧</div>
+        <div class="desc">近半年走過的每一站，方便回顧</div>
       </div>
       <div class="timeline-list reveal" id="timeline-list">
         <div class="empty-note">尚未有場次紀錄</div>
@@ -1416,7 +1416,7 @@
     return entries;
   }
 
-  // 把 datetime 字串（例如 '24.08.17 19:42）解析成實際日期，用來判斷是否在近一年內
+  // 把 datetime 字串（例如 '24.08.17 19:42）解析成實際日期，用來判斷是否在近半年內
   function parseTimelineDate(str){
     if (!str) return null;
     let m = str.match(/(20\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
@@ -1437,9 +1437,9 @@
       return;
     }
 
-    // 只完整顯示近一年的場次，更早的用「⋯⋯」代表，不展開列出
+    // 只完整顯示近半年的場次，更早的用「⋯⋯」代表，不展開列出
     const cutoff = new Date();
-    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    cutoff.setMonth(cutoff.getMonth() - 6);
     const recent = [];
     const older = [];
     entries.forEach(en => {
