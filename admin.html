@@ -204,6 +204,10 @@
           <label>標題</label>
           <input type="text" id="f-title" placeholder="例如：主舞台 · 開場曲">
         </div>
+        <div class="field" id="f-song-field" style="display:none;">
+          <label>曲目名稱</label>
+          <input type="text" id="f-song" placeholder="例如：Vitamin G">
+        </div>
         <div class="field">
           <label>地點</label>
           <input type="text" id="f-venue" placeholder="例如：高雄巨蛋">
@@ -271,6 +275,10 @@
     <div class="field">
       <label>標題</label>
       <input type="text" id="e-title">
+    </div>
+    <div class="field" id="e-song-field" style="display:none;">
+      <label>曲目名稱</label>
+      <input type="text" id="e-song">
     </div>
     <div class="field">
       <label>地點</label>
@@ -377,6 +385,22 @@
 
   let selectedFiles = [];
 
+  // ===== 曲目名稱欄位：只有分類選「直拍精選」時才顯示 =====
+  const fCategoryEl = document.getElementById('f-category');
+  const fSongField = document.getElementById('f-song-field');
+  function toggleFSongField(){
+    fSongField.style.display = fCategoryEl.value === 'fancam' ? '' : 'none';
+  }
+  fCategoryEl.addEventListener('change', toggleFSongField);
+  toggleFSongField();
+
+  const eCategoryField = document.getElementById('e-category');
+  const eSongField = document.getElementById('e-song-field');
+  function toggleESongField(){
+    eSongField.style.display = eCategoryField.value === 'fancam' ? '' : 'none';
+  }
+  eCategoryField.addEventListener('change', toggleESongField);
+
   dropEl.addEventListener('click', () => fileInput.click());
   dropEl.addEventListener('dragover', (e) => { e.preventDefault(); dropEl.classList.add('drag'); });
   dropEl.addEventListener('dragleave', () => dropEl.classList.remove('drag'));
@@ -402,6 +426,7 @@
     const artist = document.getElementById('f-artist').value.trim();
     const datetime = document.getElementById('f-datetime').value.trim();
     const title = document.getElementById('f-title').value.trim();
+    const song = document.getElementById('f-song').value.trim();
     const venue = document.getElementById('f-venue').value.trim();
     const equipment = document.getElementById('f-equipment').value.trim();
     const seat = document.getElementById('f-seat').value.trim();
@@ -417,7 +442,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, artist, datetime, title, venue, equipment, seat, link, tags,
+          url, category, artist, datetime, title, song, venue, equipment, seat, link, tags,
           createdAt: serverTimestamp()
         });
         done++;
@@ -434,6 +459,7 @@
     fileInput.value = '';
     document.getElementById('f-title').value = '';
      document.getElementById('f-artist').value = '';
+     document.getElementById('f-song').value = '';
      document.getElementById('f-venue').value = '';
     document.getElementById('f-equipment').value = '';
     document.getElementById('f-seat').value = '';
@@ -617,6 +643,7 @@
   const eArtist = document.getElementById('e-artist');
   const eDatetime = document.getElementById('e-datetime');
   const eTitle = document.getElementById('e-title');
+  const eSong = document.getElementById('e-song');
   const eVenue = document.getElementById('e-venue');
   const eEquipment = document.getElementById('e-equipment');
   const eSeat = document.getElementById('e-seat');
@@ -634,7 +661,9 @@
     eArtist.value = p.artist || '';
     eDatetime.value = p.datetime || '';
     eTitle.value = p.title || '';
+    eSong.value = p.song || '';
     eVenue.value = p.venue || '';
+    toggleESongField();
     eEquipment.value = p.equipment || '';
     eSeat.value = p.seat || '';
     eLink.value = p.link || '';
@@ -660,6 +689,7 @@
         artist: eArtist.value.trim(),
         datetime: eDatetime.value.trim(),
         title: eTitle.value.trim(),
+        song: eSong.value.trim(),
         venue: eVenue.value.trim(),
          equipment: eEquipment.value.trim(),
         seat: eSeat.value.trim(),
