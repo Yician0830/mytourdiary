@@ -723,6 +723,20 @@
 
   const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場', fancam: '直拍精選' };
 
+  // 後台縮圖優化：照片管理清單只是要給你快速瀏覽/管理，不需要載入原始全尺寸大圖，
+  // 用跟公開頁面一樣的縮圖代理服務，把每張縮小成 240px 寬的 webp，大幅減少要下載/解碼的資料量，
+  // 這是造成清單一直卡頓的主因（原本每張卡片都是載入相機原始檔，幾MB起跳，還會在每次重新整理清單時整批重新解碼）。
+  function optimizeThumb(url){
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('images.weserv.nl')) return url;
+    try {
+      const stripped = url.replace(/^https?:\/\//i, '');
+      return 'https://images.weserv.nl/?url=' + encodeURIComponent(stripped) + '&output=webp&q=75&w=240';
+    } catch (e) {
+      return url;
+    }
+  }
+
   // ===== 搜尋 / 排序 / 批次選取狀態 =====
   let currentSearch = '';
   let currentSort = 'new'; // 'new' 上傳新到舊 / 'likes' 讚數 / 'downloads' 下載次數 / 'views' 觀看次數
@@ -785,7 +799,7 @@
       el.className = 'photo-item';
       el.innerHTML = `
         <input type="checkbox" class="select-box" data-id="${p.id}" ${selectedIds.has(p.id) ? 'checked' : ''}>
-        <div class="thumb"><img src="${p.url}" loading="lazy"></div>
+        <div class="thumb"><img src="${optimizeThumb(p.url)}" loading="lazy" decoding="async"></div>
         <div class="info">
           <div class="cat">${CAT_LABEL[p.category] || p.category}</div>
           <div class="t">${escapeHTML(p.title) || '（未填標題）'}</div>
