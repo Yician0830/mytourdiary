@@ -733,7 +733,7 @@
     <div class="lightbox-close" id="polaroidClose" style="top:12px; right:16px; color:var(--ink);">✕</div>
     <div class="polaroid-modal-title">IG 限動 9:16 拍立得圖卡</div>
     <img id="polaroidImg" class="polaroid-preview-img" src="" alt="拍立得預覽">
-    <a id="polaroidDownloadBtn" class="polaroid-btn" download="polaroid-story.png">下載卡片分享至 IG</a>
+    <button id="polaroidDownloadBtn" type="button" class="polaroid-btn">分享至 IG</button>
   </div>
 </div>
 
@@ -945,13 +945,40 @@
       ctx.textAlign = 'center';
       ctx.fillText('_CHEMERA_ DIARY', 540, 1750);
 
-      // 轉為圖片 Data URL 並顯示
+      // 轉為圖片 Data URL 並顯示預覽圖
       const dataUrl = canvas.toDataURL('image/png');
       document.getElementById('polaroidImg').src = dataUrl;
-      document.getElementById('polaroidDownloadBtn').href = dataUrl;
       document.getElementById('polaroidModal').classList.add('open');
+
+      // 綁定「分享至 IG」按鈕事件
+      const shareBtn = document.getElementById('polaroidDownloadBtn');
+      shareBtn.onclick = async () => {
+        try {
+          // 將 Canvas 轉換為 Blob，建立 File 物件
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          const file = new File([blob], 'polaroid-story.png', { type: 'image/png' });
+
+          // 若瀏覽器支援原生檔案分享功能，呼叫系統分享功能
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: title,
+              text: 'CHEMERA DIARY'
+            });
+          } else {
+            // 備用方案：若不支援 Web Share API (如電腦版瀏覽器)，則執行下載
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'polaroid-story.png';
+            link.click();
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('分享失敗:', error);
+          }
+        }
+      };
     };
-  });
 
   document.getElementById('polaroidClose').addEventListener('click', () => {
     document.getElementById('polaroidModal').classList.remove('open');
