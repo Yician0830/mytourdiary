@@ -870,6 +870,7 @@
     <div class="lightbox-share" id="lightboxPolaroid">📸 IG拍立得</div>
     <div class="share-menu" id="shareMenu">
       <button type="button" id="shareThreads">分享到 Threads</button>
+      <button type="button" id="shareLine">分享到 LINE</button>
       <button type="button" id="shareX">分享到 X</button>
       <button type="button" id="shareCopy">複製連結</button>
     </div>
@@ -1044,6 +1045,13 @@
     e.stopPropagation();
     const { url, title } = getShareInfo();
     window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(title + ' ' + url), '_blank');
+    shareMenu.classList.remove('open');
+  });
+
+  document.getElementById('shareLine').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getShareInfo();
+    window.open('https://social-plugins.line.me/lineit/share?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title), '_blank');
     shareMenu.classList.remove('open');
   });
 
@@ -1596,6 +1604,25 @@ const grids = {
     });
   }
 
+  // 從 datetime 字串擷取「純日期」數值（忽略時分），用來判斷是否為同一天
+  // 支援 "2026.08.17 19:42"、"'24.08.17 19:42"、"24.08.17" 等常見寫法
+  function extractDateOnly(str){
+    if (!str) return 0;
+    let m = str.match(/(20\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) return parseInt(m[1],10) * 10000 + parseInt(m[2],10) * 100 + parseInt(m[3],10);
+    m = str.match(/'?(\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) return (2000 + parseInt(m[1],10)) * 10000 + parseInt(m[2],10) * 100 + parseInt(m[3],10);
+    return 0;
+  }
+
+  // 同一批照片裡：先依「藝人」分在一起，同一藝人裡再依讚數高到低排序
+  function byArtistThenLikes(a, b){
+    const artistA = a.artist || '';
+    const artistB = b.artist || '';
+    if (artistA !== artistB) return artistA.localeCompare(artistB, 'zh-Hant');
+    return (b.likes || 0) - (a.likes || 0);
+  }
+
   function renderGrids(byCategory){
     currentAlbums = [];
     Object.entries(grids).forEach(([cat, el]) => {
@@ -1615,15 +1642,21 @@ const grids = {
       }
 
       if (currentSortMode === 'date') {
-        // 依日期排序：不合併場次，單張依時間先後排列（時間軸瀏覽）
-        el.innerHTML = items.length
-          ? items.map(cellHTML).join('')
+        // 依日期排序：同一天的照片，先依「藝人」分在一起，同一藝人裡再依讚數高到低排列
+        const dateItems = [...items].sort((a, b) => {
+          const dayA = extractDateOnly(a.datetime);
+          const dayB = extractDateOnly(b.datetime);
+          if (dayA !== dayB) return dayB - dayA;
+          return byArtistThenLikes(a, b);
+        });
+        el.innerHTML = dateItems.length
+          ? dateItems.map(cellHTML).join('')
           : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
         return;
       }
 
-      // 依場次排序：同標題的照片合併成一本相簿
-      const groups = groupByTitle(items);
+      // 依場次排序：同標題的照片合併成一本相簿，相簿內先依「藝人」分在一起，同一藝人裡再依讚數排列
+      const groups = groupByTitle(items).map(group => [...group].sort(byArtistThenLikes));
       el.innerHTML = groups.length
         ? groups.map(group => {
             if (group.length > 1) {
@@ -1634,6 +1667,30 @@ const grids = {
           }).join('')
         : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
     });
+  }
+
+  // ===== 記住上次瀏覽的捲動位置，回到分頁時自動恢復到原本看到的地方 =====
+  const SCROLL_KEY = 'scrollPos:' + location.pathname;
+  let scrollSaveTimer = null;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(() => {
+      try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY)); } catch(e){}
+    }, 200);
+  }, { passive: true });
+
+  let scrollRestored = false;
+  function restoreScrollPosition(){
+    if (scrollRestored) return;
+    scrollRestored = true;
+    // 網址帶了錨點（#xxx）或分享的照片參數（?photo=xxx）時，優先服從那個跳轉，不做捲動還原
+    if (location.hash || new URLSearchParams(location.search).get('photo')) return;
+    try {
+      const saved = sessionStorage.getItem(SCROLL_KEY);
+      if (saved !== null) {
+        requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10) || 0));
+      }
+    } catch(e){}
   }
 
   const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
@@ -1673,6 +1730,7 @@ if (coverPreview && all.length){
     updateColophonStats(all);
     bindLightbox();
     handleSharedPhotoLink(all);
+    restoreScrollPosition();
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
   });
