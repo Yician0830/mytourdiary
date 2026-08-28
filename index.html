@@ -25,11 +25,13 @@
 
 <script>
   // 及早套用深色模式，避免畫面先閃一下亮色再切換
+  // theme 模式：'auto'（跟隨系統，預設）/ 'light'（強制淡色）/ 'dark'（強制深色）
   (function(){
     try{
-      const saved = localStorage.getItem('theme');
+      const saved = localStorage.getItem('theme') || 'auto';
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (saved === 'dark' || (!saved && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+      const isDark = saved === 'dark' || (saved === 'auto' && prefersDark);
+      if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
     }catch(e){}
   })();
 </script>
@@ -216,6 +218,26 @@
   .to-top-btn:hover{ background:var(--press); }
   @media (max-width:640px){
     .to-top-btn{ right:16px; bottom:16px; width:44px; height:44px; font-size:18px; }
+  }
+
+  /* ===== 音樂播放開關 ===== */
+  .music-toggle-btn{
+    position:fixed; left:24px; bottom:24px; z-index:200;
+    width:48px; height:48px; border-radius:50%;
+    background:var(--ink); color:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; line-height:1; border:none; cursor:pointer;
+    box-shadow:0 4px 14px rgba(21,19,15,0.28);
+    transition:background .2s ease, transform .2s ease;
+  }
+  .music-toggle-btn:hover{ background:var(--press); }
+  .music-toggle-btn.playing{ animation:music-pulse 1.8s ease-in-out infinite; }
+  @keyframes music-pulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.08); }
+  }
+  @media (max-width:640px){
+    .music-toggle-btn{ left:16px; bottom:16px; width:44px; height:44px; font-size:17px; }
   }
 
   /* ===== FLASH PLACEHOLDER LOOK ===== */
@@ -1035,6 +1057,8 @@
 
 <!-- ===== 回到頂部按鈕 ===== -->
 <button type="button" class="to-top-btn" id="toTopBtn" aria-label="回到頂部">↑</button>
+<button type="button" class="music-toggle-btn" id="musicToggleBtn" aria-label="播放/暫停背景音樂">🔇</button>
+<div id="yt-music-player" style="position:fixed; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; left:-9999px;"></div>
 
 <!-- ===== POLAROID PREVIEW MODAL ===== -->
 <div class="polaroid-modal" id="polaroidModal">
@@ -1051,25 +1075,42 @@
 </div>
 
 <script>
-  // ===== 深色模式切換按鈕 =====
+  // ===== 深色模式切換按鈕：三模式循環「自動跟隨系統 → 淡色 → 深色 → 自動…」 =====
   (function(){
     const btn = document.getElementById('themeToggle');
     if (!btn) return;
-    function syncIcon(){
-      btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+    const MODE_ICON = { auto: '🌗', light: '☀️', dark: '🌙' };
+    const MODE_LABEL = { auto: '自動（跟隨系統）', light: '淡色模式', dark: '深色模式' };
+    const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+    function getMode(){
+      return localStorage.getItem('theme') || 'auto';
     }
-    syncIcon();
+
+    function applyMode(mode){
+      const isDark = mode === 'dark' || (mode === 'auto' && mql && mql.matches);
+      if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+      btn.textContent = MODE_ICON[mode] || MODE_ICON.auto;
+      btn.setAttribute('aria-label', '切換深色模式（目前：' + (MODE_LABEL[mode] || MODE_LABEL.auto) + '，點擊切換下一個）');
+      btn.title = MODE_LABEL[mode] || MODE_LABEL.auto;
+    }
+
+    applyMode(getMode());
+
     btn.addEventListener('click', () => {
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      if (isDark){
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-      }
-      syncIcon();
+      const order = ['auto', 'light', 'dark'];
+      const next = order[(order.indexOf(getMode()) + 1) % order.length];
+      localStorage.setItem('theme', next);
+      applyMode(next);
     });
+
+    // 系統深/淺色設定即時改變時：只有在「自動」模式下才即時跟著切換畫面
+    if (mql){
+      const onSystemChange = () => { if (getMode() === 'auto') applyMode('auto'); };
+      if (mql.addEventListener) mql.addEventListener('change', onSystemChange);
+      else if (mql.addListener) mql.addListener(onSystemChange); // 舊版 Safari 相容
+    }
   })();
 </script>
 <script>
@@ -2511,6 +2552,92 @@ if (coverPreview && all.length){
       navigator.serviceWorker.register('service-worker.js').catch(() => {});
     });
   }
+</script>
+
+<script>
+  // ===== 背景音樂：使用 YouTube IFrame API 播放歌單（隱藏畫面，只播放聲音） =====
+  // 瀏覽器政策不允許帶聲音自動播放，所以先「靜音自動播放」，
+  // 使用者只要點一下頁面任何地方，或按左下角音樂按鈕，就會自動解除靜音開始有聲音。
+  (function(){
+    const MUSIC_PLAYLIST_ID = 'RDk1GY2D1IM80';
+    const btn = document.getElementById('musicToggleBtn');
+    let ytPlayer = null;
+    let apiReady = false;
+    let soundOn = false;
+
+    function updateBtnUI(){
+      if (!btn) return;
+      btn.textContent = soundOn ? '🔊' : '🔇';
+      btn.classList.toggle('playing', soundOn);
+      btn.setAttribute('aria-label', soundOn ? '關閉背景音樂' : '播放背景音樂');
+    }
+
+    function turnSoundOn(){
+      if (!ytPlayer || !apiReady) return;
+      try {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(70);
+        ytPlayer.playVideo();
+        soundOn = true;
+        updateBtnUI();
+      } catch(e){}
+    }
+
+    function turnSoundOff(){
+      if (!ytPlayer || !apiReady) return;
+      try {
+        ytPlayer.mute();
+        soundOn = false;
+        updateBtnUI();
+      } catch(e){}
+    }
+
+    // 載入 YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+
+    window.onYouTubeIframeAPIReady = function(){
+      ytPlayer = new YT.Player('yt-music-player', {
+        height: '1',
+        width: '1',
+        playerVars: {
+          listType: 'playlist',
+          list: MUSIC_PLAYLIST_ID,
+          autoplay: 1,
+          mute: 1,
+          controls: 0,
+          playsinline: 1,
+          disablekb: 1,
+          modestbranding: 1
+        },
+        events: {
+          onReady: function(e){
+            apiReady = true;
+            try { e.target.mute(); e.target.playVideo(); } catch(err){}
+            soundOn = false;
+            updateBtnUI();
+          },
+          onError: function(){}
+        }
+      });
+    };
+
+    if (btn){
+      btn.addEventListener('click', () => {
+        if (soundOn) turnSoundOff(); else turnSoundOn();
+      });
+    }
+
+    // 使用者第一次點擊/觸控/按鍵，自動把靜音解除（只會生效一次；點音樂按鈕本身不算，避免衝突）
+    function firstInteractionUnmute(e){
+      if (btn && e.target && btn.contains(e.target)) return;
+      if (!soundOn) turnSoundOn();
+    }
+    ['click','touchstart','keydown'].forEach(evt => {
+      document.addEventListener(evt, firstInteractionUnmute, { once:true, passive:true });
+    });
+  })();
 </script>
 
 </body>
