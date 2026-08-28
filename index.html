@@ -184,6 +184,31 @@
   }
   .cover-lines span{ color:var(--press); font-weight:600; margin-right:6px; }
 
+  /* ===== 累積統計條 ===== */
+  .stats-bar{
+    display:flex; flex-wrap:wrap; justify-content:center;
+    gap:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    padding:22px 20px;
+  }
+  .stats-bar-item{
+    display:flex; flex-direction:column; align-items:center;
+    padding:6px 28px; border-left:1px solid var(--line);
+  }
+  .stats-bar-item:first-child{ border-left:none; }
+  .stats-bar-num{
+    font-family:var(--display); font-weight:900; font-size:clamp(24px,3.4vw,36px);
+    color:var(--ink); line-height:1;
+  }
+  .stats-bar-label{
+    margin-top:6px; font-family:var(--mono); font-size:11px;
+    letter-spacing:0.06em; color:var(--ink-dim);
+  }
+  @media (max-width:640px){
+    .stats-bar{ padding:16px 10px; gap:0 4px; }
+    .stats-bar-item{ padding:6px 14px; }
+    .stats-bar-item:nth-child(3){ border-left:none; }
+  }
+
 .cover-bottom{
   overflow:hidden;
   height:45vh; min-height:340px;
@@ -764,6 +789,30 @@
   </div>
 </header>
 
+<!-- ===== 累積統計條 ===== -->
+<section class="stats-bar reveal" id="stats-bar">
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="stat-bar-events">—</div>
+    <div class="stats-bar-label">累積場次</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="stat-bar-photos">—</div>
+    <div class="stats-bar-label">照片張數</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="stat-bar-cities">—</div>
+    <div class="stats-bar-label">足跡城市</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="stat-bar-artists">—</div>
+    <div class="stats-bar-label">拍攝藝人</div>
+  </div>
+  <div class="stats-bar-item">
+    <div class="stats-bar-num" id="stat-bar-fancam">—</div>
+    <div class="stats-bar-label">直拍精選</div>
+  </div>
+</section>
+
 <!-- ===== 主要內容：左欄場次總覽 + 右欄目次與各分類 ===== -->
 <div class="split-layout">
 
@@ -1261,7 +1310,9 @@
     const { url, title } = getShareInfo();
 
     if (navigator.share) {
-      navigator.share({ title, text: title, url }).catch(() => {});
+      // 部分分享目標(如 Threads)在系統分享時會忽略獨立的 url 欄位、只帶 text，
+      // 所以把連結直接寫進 text 裡，確保不管分享到哪裡連結都會一起帶過去。
+      navigator.share({ title, text: title + '\n' + url, url }).catch(() => {});
       return;
     }
     shareMenu.classList.toggle('open');
@@ -1329,7 +1380,8 @@
     const { url, title } = getAlbumShareInfo();
 
     if (navigator.share) {
-      navigator.share({ title, text: title, url }).catch(() => {});
+      // 同上：連結直接併進 text，避免 Threads 等分享目標把獨立的 url 欄位丟掉。
+      navigator.share({ title, text: title + '\n' + url, url }).catch(() => {});
       return;
     }
     albumShareMenu.classList.toggle('open');
@@ -2234,6 +2286,7 @@ if (coverPreview && all.length){
     renderArtistFilter(all);
     applyFilters();
     updateColophonStats(all);
+    updateStatsBar(all);
     bindLightbox();
     handleSharedPhotoLink(all);
     handleSharedAlbumLink();
@@ -2321,6 +2374,38 @@ if (coverPreview && all.length){
     if (statEventsEl){
       statEventsEl.textContent = eventTitles.size;
     }
+  }
+
+  // ===== 累積統計條：場次 / 照片 / 城市 / 藝人 / 直拍，數字用簡單的滾動動畫 =====
+  function animateStatNumber(el, target){
+    if (!el) return;
+    const from = parseInt(el.dataset.rawValue || '0', 10) || 0;
+    if (from === target){ el.textContent = target; return; }
+    el.dataset.rawValue = target;
+    const duration = 600;
+    const start = performance.now();
+    function tick(now){
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(from + (target - from) * eased);
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function updateStatsBar(all){
+    const nonFancam = all.filter(p => p.category !== 'fancam');
+    const eventTitles = new Set(nonFancam.map(p => (p.title || '').trim()).filter(Boolean));
+    const cities = new Set(all.map(p => (p.city || '').trim()).filter(Boolean));
+    const artists = new Set(all.map(p => (p.artist || '').trim()).filter(Boolean));
+    const fancamCount = all.filter(p => p.category === 'fancam').length;
+
+    animateStatNumber(document.getElementById('stat-bar-events'), eventTitles.size);
+    animateStatNumber(document.getElementById('stat-bar-photos'), nonFancam.length);
+    animateStatNumber(document.getElementById('stat-bar-cities'), cities.size);
+    animateStatNumber(document.getElementById('stat-bar-artists'), artists.size);
+    animateStatNumber(document.getElementById('stat-bar-fancam'), fancamCount);
   }
 
   // ===== 標籤篩選 =====
@@ -2559,7 +2644,7 @@ if (coverPreview && all.length){
   // 瀏覽器政策不允許帶聲音自動播放，所以先「靜音自動播放」，
   // 使用者只要點一下頁面任何地方，或按左下角音樂按鈕，就會自動解除靜音開始有聲音。
   (function(){
-    const MUSIC_PLAYLIST_ID = 'RDk1GY2D1IM80';
+    const MUSIC_VIDEO_ID = 'k1GY2D1IM80';
     const btn = document.getElementById('musicToggleBtn');
     let ytPlayer = null;
     let apiReady = false;
@@ -2602,8 +2687,10 @@ if (coverPreview && all.length){
         height: '1',
         width: '1',
         playerVars: {
+          videoId: MUSIC_VIDEO_ID,
           listType: 'playlist',
-          list: MUSIC_PLAYLIST_ID,
+          list: MUSIC_VIDEO_ID,
+          loop: 1,
           autoplay: 1,
           mute: 1,
           controls: 0,
