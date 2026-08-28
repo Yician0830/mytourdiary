@@ -628,6 +628,32 @@
   .search-input:focus{ outline:none; border-color:var(--press); }
   .search-input::placeholder{ color:var(--ink-faint); }
 
+  /* ===== 搜尋結果統計 ===== */
+  .search-stats-query{
+    font-family:var(--editorial); font-style:normal; font-weight:500; font-size:16px;
+    color:var(--ink); margin-bottom:4px;
+  }
+  .search-stats-total{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.05em; color:var(--ink-dim);
+    margin-bottom:14px;
+  }
+  .search-stats-grid{ display:flex; gap:10px; flex-wrap:wrap; }
+  .search-stats-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 16px; border:1px solid var(--line); background:var(--paper-2);
+    min-width:92px;
+  }
+  .search-stats-item .k{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--ink-dim);
+  }
+  .search-stats-item .v{
+    font-family:var(--display); font-size:18px; color:var(--press); margin-left:auto;
+  }
+  @media (max-width:640px){
+    .search-stats-item{ min-width:0; flex:1 1 40%; }
+  }
+
   ::-webkit-scrollbar{ width:9px; }
   ::-webkit-scrollbar-track{ background:var(--paper); }
   ::-webkit-scrollbar-thumb{ background:#c7c1af; }
@@ -772,6 +798,18 @@
     <!-- ===== SEARCH ===== -->
     <section id="search-wrap" style="padding-top:36px; padding-bottom:0;">
       <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
+    </section>
+
+    <!-- ===== 搜尋結果統計 ===== -->
+    <section id="search-stats-wrap" style="display:none; padding-top:18px; padding-bottom:0;">
+      <div class="search-stats-query">搜尋「<span id="search-stats-query"></span>」</div>
+      <div class="search-stats-total">找到 <span id="search-stats-total">0</span> 筆</div>
+      <div class="search-stats-grid">
+        <div class="search-stats-item"><span class="k">照片</span><span class="v" id="search-stats-photo">0</span></div>
+        <div class="search-stats-item"><span class="k">場次</span><span class="v" id="search-stats-session">0</span></div>
+        <div class="search-stats-item"><span class="k">藝人</span><span class="v" id="search-stats-artist">0</span></div>
+        <div class="search-stats-item"><span class="k">直拍</span><span class="v" id="search-stats-fancam">0</span></div>
+      </div>
     </section>
 
     <!-- ===== 排序切換與重置 ===== -->
@@ -2123,6 +2161,7 @@ if (coverPreview && all.length){
   }
 
   let currentSearchQuery = '';
+  let currentSearchQueryDisplay = '';
 
   function searchMatches(p){
     if (!currentSearchQuery) return true;
@@ -2135,6 +2174,32 @@ if (coverPreview && all.length){
     const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
     const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
     return tagOK && artistOK && searchMatches(p);
+  }
+
+  // ===== 搜尋結果統計：依「照片 / 場次 / 藝人 / 直拍」分別列出符合目前搜尋(與標籤/藝人篩選)條件的筆數 =====
+  function updateSearchStats(){
+    const wrap = document.getElementById('search-stats-wrap');
+    if (!wrap) return;
+    if (!currentSearchQuery){
+      wrap.style.display = 'none';
+      return;
+    }
+    const matched = latestAllPhotos.filter(photoMatchesFilters);
+    const photoCount = matched.filter(p => p.category !== 'fancam').length;
+    const fancamCount = matched.filter(p => p.category === 'fancam').length;
+    const sessionTitles = new Set(
+      matched.filter(p => p.category !== 'fancam').map(p => (p.title || '').trim()).filter(Boolean)
+    );
+    const artistNames = new Set(matched.map(p => (p.artist || '').trim()).filter(Boolean));
+    const total = photoCount + sessionTitles.size + artistNames.size + fancamCount;
+
+    document.getElementById('search-stats-query').textContent = currentSearchQueryDisplay;
+    document.getElementById('search-stats-total').textContent = total;
+    document.getElementById('search-stats-photo').textContent = photoCount;
+    document.getElementById('search-stats-session').textContent = sessionTitles.size;
+    document.getElementById('search-stats-artist').textContent = artistNames.size;
+    document.getElementById('search-stats-fancam').textContent = fancamCount;
+    wrap.style.display = '';
   }
 
   function applyFilters(){
@@ -2175,10 +2240,12 @@ if (coverPreview && all.length){
   if (resetBtn) {
     resetBtn.style.display = filterActive ? 'inline-block' : 'none';
   }
+  updateSearchStats();
   }
 
   document.getElementById('search-input').addEventListener('input', (e) => {
-    currentSearchQuery = e.target.value.trim().toLowerCase();
+    currentSearchQueryDisplay = e.target.value.trim();
+    currentSearchQuery = currentSearchQueryDisplay.toLowerCase();
     applyFilters();
   });
 
@@ -2186,6 +2253,7 @@ if (coverPreview && all.length){
   document.getElementById('reset-filter-btn')?.addEventListener('click', () => {
     // 1. 重置搜尋欄
     currentSearchQuery = '';
+    currentSearchQueryDisplay = '';
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.value = '';
 
