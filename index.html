@@ -546,6 +546,21 @@
     max-height:70vh; overflow-y:auto;
   }
   .album-modal-grid img{ width:100%; aspect-ratio:3/4; object-fit:cover; cursor:pointer; display:block; }
+
+  .city-modal-list{ display:flex; flex-direction:column; max-height:70vh; overflow-y:auto; }
+  .city-modal-item{
+    display:flex; align-items:center; gap:14px; padding:14px 6px;
+    border-top:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:background .15s;
+  }
+  .city-modal-item:first-child{ border-top:none; }
+  .city-modal-item:hover{ background:rgba(255,255,255,0.06); }
+  .city-modal-thumb{ width:56px; height:56px; flex:0 0 auto; object-fit:cover; }
+  .city-modal-info{ flex:1; min-width:0; }
+  .city-modal-info .t{
+    font-family:var(--editorial); font-style:normal; font-size:15px; color:#f4f2ec;
+    margin-bottom:4px; overflow-wrap:break-word;
+  }
+  .city-modal-info .m{ font-family:var(--mono); font-size:11px; color:#cfc9ba; }
   .lightbox-frame{ aspect-ratio:4/5; max-height:70vh; width:auto; margin:0 auto; position:relative; overflow:hidden; }
   .lightbox-cap{ display:flex; justify-content:space-between; margin-top:18px; font-family:var(--mono); font-size:11px; color:#cfc9ba; }
   .lightbox-extra{ margin-top:10px; font-family:var(--mono); font-size:11px; color:#9c9284; line-height:1.8; }
@@ -928,6 +943,14 @@
   <div class="lightbox-inner" style="max-width:900px;">
     <h3 id="albumModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:16px; text-align:center; font-size:22px;"></h3>
     <div class="album-modal-grid" id="albumModalGrid"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="cityModal">
+  <div class="lightbox-close" id="cityModalClose">關閉 ✕</div>
+  <div class="lightbox-inner" style="max-width:640px;">
+    <h3 id="cityModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:16px; text-align:center; font-size:22px;"></h3>
+    <div class="city-modal-list" id="cityModalList"></div>
   </div>
 </div>
 
@@ -1713,14 +1736,48 @@ const grids = {
     markersEl.querySelectorAll('.tour-map-pin').forEach(pin => {
       pin.addEventListener('click', () => {
         const list = cityEntries.get(pin.dataset.city);
-        const entry = list && list[0];
+        if (!list || !list.length) return;
+        openCityModal(pin.dataset.city, list);
+      });
+    });
+  }
+
+  // ===== 點城市光點後：先列出這個城市走過的每一場，選一場才真正打開那本相簿 =====
+  let currentCityList = [];
+  function openCityModal(city, list){
+    currentCityList = list;
+    const modal = document.getElementById('cityModal');
+    const titleEl = document.getElementById('cityModalTitle');
+    const listEl = document.getElementById('cityModalList');
+    if (!modal || !titleEl || !listEl) return;
+
+    titleEl.textContent = city + ' · 共 ' + list.length + ' 場';
+    listEl.innerHTML = list.map((en, i) => `
+      <div class="city-modal-item" data-idx="${i}">
+        ${en.coverUrl ? `<img class="city-modal-thumb" src="${escapeHTML(optimizeImg(en.coverUrl, 120))}" loading="lazy" decoding="async">` : ''}
+        <div class="city-modal-info">
+          <div class="t">${escapeHTML(en.title)}</div>
+          <div class="m">${escapeHTML(en.datetime || '日期未提供')}${en.venue ? '　📍 ' + escapeHTML(en.venue) : ''}　📷 ${en.count} 張</div>
+        </div>
+      </div>`).join('');
+    modal.classList.add('open');
+
+    if (!modal.dataset.bound){
+      modal.dataset.bound = '1';
+      document.getElementById('cityModalClose').addEventListener('click', () => modal.classList.remove('open'));
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+      listEl.addEventListener('click', (e) => {
+        const item = e.target.closest('.city-modal-item');
+        if (!item) return;
+        const entry = currentCityList[Number(item.dataset.idx)];
         if (!entry || !entry.group.length) return;
+        modal.classList.remove('open');
         window.lightboxGroup = entry.group.length > 1 ? entry.group : null;
         window.lightboxIndex = 0;
         showLightboxPhoto(entry.group[0]);
         document.getElementById('lightbox').classList.add('open');
       });
-    });
+    }
   }
   // 從 datetime 字串擷取「純日期」數值（忽略時分），用來判斷是否為同一天
   // 支援 "2026.08.17 19:42"、"'24.08.17 19:42"、"24.08.17" 等常見寫法
