@@ -1320,6 +1320,35 @@
     document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
     if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(p.id, p.likes || 0);
     window.updateLightboxNav();
+    preloadAdjacentLightboxPhotos();
+  }
+
+  // ===== 預先載入燈箱的上一張／下一張照片 =====
+  // 瀏覽當前照片的同時,在背景先把左右相鄰的圖抓好放進瀏覽器快取,
+  // 這樣使用者按上一張/下一張(或滑動切換)時幾乎是秒開,不用等待。
+  const preloadedImgCache = new Set();
+  function preloadImage(url){
+    if (!url) return;
+    const src = optimizeImg(url, 1600);
+    if (preloadedImgCache.has(src)) return;
+    preloadedImgCache.add(src);
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+  }
+  function preloadAdjacentLightboxPhotos(){
+    const group = window.lightboxGroup;
+    if (!group || group.length < 2) return;
+    const len = group.length;
+    const nextIdx = (window.lightboxIndex + 1) % len;
+    const prevIdx = (window.lightboxIndex - 1 + len) % len;
+    const run = () => {
+      preloadImage(group[nextIdx].url);
+      if (prevIdx !== nextIdx) preloadImage(group[prevIdx].url);
+    };
+    // 用瀏覽器閒置時間預載,避免搶當前這張照片的載入優先權
+    if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 1500 });
+    else setTimeout(run, 200);
   }
 
   window.updateLightboxNav = function(){
