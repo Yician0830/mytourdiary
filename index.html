@@ -222,8 +222,9 @@
   .flash{ position:relative;  overflow:hidden; }
 
   .flash-stage::before{ background:radial-gradient(circle at 50% 30%, rgba(190,150,255,0.55), rgba(70,40,110,0.15) 40%, rgba(5,4,10,0.7) 80%); }
-  .flash-airport::before{ background:radial-gradient(circle at 55% 45%, rgba(255,255,255,0.45), rgba(120,120,120,0.1) 42%, rgba(10,10,10,0.65) 82%); }
   .flash-meet::before{ background:radial-gradient(circle at 45% 40%, rgba(255,214,170,0.5), rgba(120,70,40,0.12) 42%, rgba(10,7,4,0.68) 82%); }
+  .flash-school::before{ background:radial-gradient(circle at 50% 35%, rgba(255,190,120,0.5), rgba(120,70,20,0.15) 40%, rgba(10,7,4,0.7) 82%); }
+  .flash-airport::before{ background:radial-gradient(circle at 55% 45%, rgba(255,255,255,0.45), rgba(120,120,120,0.1) 42%, rgba(10,10,10,0.65) 82%); }
 .flash-fancam::before{ background:radial-gradient(circle at 50% 35%, rgba(120,200,255,0.5), rgba(30,70,110,0.15) 40%, rgba(4,8,10,0.7) 82%); }
 .fancam-item{ aspect-ratio:3/4; position:relative; overflow:hidden; display:block; }
 .fancam-item .caption-bar{
@@ -621,11 +622,12 @@
   <div class="nav-mark">_CHEMERA_DIARY</div>
   <div class="nav-links">
     <a href="#toc">目次</a>
-    <a href="#stage">舞台</a>
-    <a href="#airport">機場</a>
-    <a href="#fanmeet">見面會</a>
-    <a href="#fancam">直拍</a>
     <a href="#timeline">總覽</a>
+    <a href="#stage">舞台</a>
+    <a href="#fanmeet">見面會</a>
+    <a href="#school">校唱</a>
+    <a href="#airport">機場</a>
+    <a href="#fancam">直拍</a>
     <a href="#contact">聯絡</a>
   </div>
   <div class="nav-mobile-controls">
@@ -691,13 +693,17 @@
         <div class="pg">P. 01</div><div class="ti">舞台焦點 — On Stage</div><div class="dots"></div><div class="ct" id="ct-stage">演唱會 · 14 張精選</div>
       </div>
       <div class="toc-row">
-        <div class="pg">P. 02</div><div class="ti">飛行日記 — Candid</div><div class="dots"></div><div class="ct" id="ct-airport">機場跟拍 · 0 張精選</div>
+        <div class="pg">P. 02</div><div class="ti">零距離 — Face to Face</div><div class="dots"></div><div class="ct" id="ct-fanmeet">見面會 / 簽售 · 11 張精選</div>
       </div>
       <div class="toc-row">
-        <div class="pg">P. 03</div><div class="ti">零距離 — Face to Face</div><div class="dots"></div><div class="ct" id="ct-fanmeet">見面會 / 簽售 · 11 張精選</div>
-      </div>
+  <div class="pg">P. 03</div><div class="ti">校唱時刻 — School Sing</div><div class="dots"></div><div class="ct" id="ct-school">校唱 · 0 張精選</div>
+</div>
       <div class="toc-row">
-        <div class="pg">P. 04</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
+        <div class="pg">P. 04</div><div class="ti">飛行日記 — Candid</div><div class="dots"></div><div class="ct" id="ct-airport">機場跟拍 · 0 張精選</div>
+      </div>
+      
+      <div class="toc-row">
+        <div class="pg">P. 05</div><div class="ti">直拍精選 — Fancam</div><div class="dots"></div><div class="ct">影片精選</div>
       </div>
 
     </section>
@@ -751,11 +757,36 @@
         <div class="cell flash flash-stage"><div class="placeholder-mark">替換為演唱會照片</div><div class="stamp">'24.08.17&nbsp;20:21</div></div>
       </div>
     </section>
-
-    <!-- ===== 02 AIRPORT / CANDID ===== -->
+    
+ <!-- ===== 02 FANMEET ===== -->
+    <section id="fanmeet">
+      <div class="section-head reveal">
+        <div><div class="num">02 — Face to face</div><h3>視線交會</h3></div>
+        <div class="desc">視線交會的千分之一秒</div>
+      </div>
+      <div class="grid3 reveal" id="fanmeet-grid">
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:40</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:44</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:51</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:10</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:15</div></div>
+        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
+      </div>
+    </section>
+    <!-- ===== 03 校唱 ===== -->
+<section id="school">
+  <div class="section-head reveal">
+    <div><div class="num">03 — School Sing</div><h3>校唱時刻</h3></div>
+    <div class="desc">青春嘹亮的每一句</div>
+  </div>
+  <div class="grid3 reveal" id="school-grid">
+    <div class="empty-note">尚未上傳校唱照片</div>
+  </div>
+</section>
+    <!-- ===== 04 AIRPORT / CANDID ===== -->
     <section id="airport">
       <div class="section-head reveal">
-        <div><div class="num">02 — Candid</div><h3>飛行日記</h3></div>
+        <div><div class="num">04 — Candid</div><h3>飛行日記</h3></div>
         <div class="desc">隔著人群，記錄每一次短暫的交集</div>
       </div>
       <div class="grid3 reveal" id="airport-grid">
@@ -768,26 +799,12 @@
       </div>
     </section>
 
-    <!-- ===== 03 FANMEET ===== -->
-    <section id="fanmeet">
-      <div class="section-head reveal">
-        <div><div class="num">03 — Face to face</div><h3>視線交會</h3></div>
-        <div class="desc">視線交會的千分之一秒</div>
-      </div>
-      <div class="grid3 reveal" id="fanmeet-grid">
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:40</div></div>
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:44</div></div>
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.06.29&nbsp;16:51</div></div>
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:10</div></div>
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:15</div></div>
-        <div class="cell flash flash-meet"><div class="placeholder-mark">替換為見面會照片</div><div class="stamp">'24.09.14&nbsp;13:22</div></div>
-      </div>
-    </section>
+   
 
-    <!-- ===== 04 FANCAM ===== -->
+    <!-- ===== 05 FANCAM ===== -->
     <section id="fancam">
       <div class="section-head reveal">
-        <div><div class="num">04 — Fancam</div><h3>直拍精選</h3></div>
+        <div><div class="num">05 — Fancam</div><h3>直拍精選</h3></div>
         <div class="desc">點擊封面前往觀看完整影片。</div>
       </div>
       <div class="grid3 reveal" id="fancam-grid">
@@ -1207,18 +1224,20 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-    const FLASH_CLASS = { stage: 'flash-stage', airport: 'flash-airport', fanmeet: 'flash-meet' };
-  const TOC_PREFIX = {
-    stage: '演唱會',
-    airport: '機場跟拍',
-    fanmeet: '見面會 / 簽售'
-  };
-  const grids = {
-    stage:   document.getElementById('stage-grid'),
-    airport: document.getElementById('airport-grid'),
-    fanmeet: document.getElementById('fanmeet-grid'),
-    fancam:  document.getElementById('fancam-grid'),
-  };
+    const FLASH_CLASS = { stage: 'flash-stage', airport: 'flash-airport', fanmeet: 'flash-meet', school: 'flash-school' };
+const TOC_PREFIX = {
+  stage: '演唱會',
+  airport: '機場跟拍',
+  fanmeet: '見面會 / 簽售',
+  school: '校唱'
+};
+const grids = {
+  stage:   document.getElementById('stage-grid'),
+  airport: document.getElementById('airport-grid'),
+  fanmeet: document.getElementById('fanmeet-grid'),
+  school:  document.getElementById('school-grid'),
+  fancam:  document.getElementById('fancam-grid'),
+};
   const coverPreview = document.getElementById('cover-preview');
 
   function escapeHTML(str){
@@ -1478,7 +1497,7 @@
   }
 
   // ===== 場次總覽時間軸：把所有分類的照片依「標題」合併成一場一場的紀錄 =====
-  const TIMELINE_CAT_LABEL = { stage:'舞台', airport:'機場', fanmeet:'見面會', fancam:'直拍' };
+  const TIMELINE_CAT_LABEL = { stage:'舞台', airport:'機場', fanmeet:'見面會', school:'校唱', fancam:'直拍' };
 
   function buildTimelineEntries(all){
     const map = new Map();
@@ -1620,7 +1639,7 @@
   let latestAllPhotos = [];
   onSnapshot(q, (snapshot) => {
     const all = [];
-    const byCategory = { stage: [], airport: [], fanmeet: [], fancam: [] };
+    const byCategory = { stage: [], airport: [], fanmeet: [], school: [], fancam: [] };
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       data.id = docSnap.id;
@@ -1802,7 +1821,7 @@ if (coverPreview && all.length){
 
   function applyFilters(){
     let visibleCount = 0;
-    document.querySelectorAll('#stage-grid [data-tags], #airport-grid [data-tags], #fanmeet-grid [data-tags], #fancam-grid [data-tags]').forEach(el => {
+    document.querySelectorAll('#stage-grid [data-tags], #airport-grid [data-tags], #fanmeet-grid [data-tags], #school-grid [data-tags], #fancam-grid [data-tags]').forEach(el => {
       const albumIdx = el.dataset.albumIndex;
       if (albumIdx !== undefined){
         const group = currentAlbums[albumIdx] || [];
