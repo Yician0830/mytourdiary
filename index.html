@@ -562,6 +562,8 @@
   }
   .city-modal-info .m{ font-family:var(--mono); font-size:11px; color:#cfc9ba; }
   .lightbox-frame{ aspect-ratio:4/5; max-height:70vh; width:auto; margin:0 auto; position:relative; overflow:hidden; }
+  .lightbox.fs-active .lightbox-frame{ max-height:88vh; }
+  .lightbox.fs-active .lightbox-inner{ max-width:min(92vw, 1100px); }
   .lightbox-cap{ display:flex; justify-content:space-between; margin-top:18px; font-family:var(--mono); font-size:11px; color:#cfc9ba; }
   .lightbox-extra{ margin-top:10px; font-family:var(--mono); font-size:11px; color:#9c9284; line-height:1.8; }
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
@@ -964,6 +966,7 @@
   <div class="lightbox-share-wrap">
     <div class="lightbox-share lightbox-like" id="lightboxLike"><span class="like-heart">♡</span> <span class="like-count">0</span></div>
     <div class="lightbox-share" id="lightboxShare">🔗 分享</div>
+    <div class="lightbox-share" id="lightboxFullscreen">⛶ 全螢幕</div>
     <div class="lightbox-share" id="lightboxPolaroid">📸 IG拍立得</div>
     <div class="share-menu" id="shareMenu">
       <button type="button" id="shareThreads">分享到 Threads</button>
@@ -1124,10 +1127,51 @@
     lightbox.classList.remove('open');
     window.lightboxGroup = null;
     if (window.updateLightboxNav) window.updateLightboxNav();
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
   }
   document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) closeLightbox(); });
-  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeLightbox(); });
+  document.addEventListener('keydown', (e)=>{
+    if (e.key !== 'Escape') return;
+    // 全螢幕狀態下，第一次按 Esc 交給瀏覽器自己離開全螢幕就好，不要連同燈箱一起關掉
+    if (isFullscreen()) return;
+    closeLightbox();
+  });
+
+  /* ===== 全螢幕觀看：用瀏覽器原生 Fullscreen API，連網址列都會一起隱藏 ===== */
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  const fullscreenSupported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  const fsBtn = document.getElementById('lightboxFullscreen');
+  if (!fullscreenSupported) {
+    fsBtn.style.display = 'none';
+  } else {
+    async function toggleFullscreen(){
+      try{
+        if (!isFullscreen()) {
+          if (lightbox.requestFullscreen) await lightbox.requestFullscreen();
+          else if (lightbox.webkitRequestFullscreen) lightbox.webkitRequestFullscreen();
+        } else {
+          if (document.exitFullscreen) await document.exitFullscreen();
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+      }catch(err){
+        console.error('切換全螢幕失敗：', err);
+      }
+    }
+    fsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
+    function syncFullscreenUI(){
+      const on = isFullscreen();
+      fsBtn.textContent = on ? '⛶ 離開全螢幕' : '⛶ 全螢幕';
+      lightbox.classList.toggle('fs-active', on);
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenUI);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
+  }
 
   document.getElementById('lightboxLike').addEventListener('click', (e) => {
     e.stopPropagation();
