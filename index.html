@@ -490,6 +490,7 @@
 <section id="search-wrap" class="wrap" style="padding-top:36px; padding-bottom:0;">
   <input type="text" id="search-input" class="search-input" placeholder="搜尋標題、地點、標籤、藝人…">
 </section>
+
 <!-- ===== 排序切換 ===== -->
 <section id="sort-toggle-wrap" class="wrap tag-filter-wrap reveal">
   <div class="tag-filter-label">瀏覽方式 · View by</div>
@@ -498,6 +499,7 @@
     <button data-sort="date">依日期</button>
   </div>
 </section>
+
 <!-- ===== ARTIST FILTER ===== -->
 <section id="artist-filter-wrap" class="wrap tag-filter-wrap reveal" style="display:none;">
   <div class="tag-filter-label">篩選 · Filter by Artist</div>
@@ -817,9 +819,10 @@
         ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
       </a>`;
   }
-let currentSortMode = 'session'; // 'session' 依場次分相簿 / 'date' 依日期逐張排列
-let latestByCategory = null;     // 記住最新資料，切換排序時不用重新讀 Firestore
+
     let currentAlbums = [];
+    let currentSortMode = 'session'; // 'session' 依場次分相簿 / 'date' 依日期逐張排列
+    let latestByCategory = null;     // 記住最新資料，切換排序時不用重新讀 Firestore
   window.lightboxGroup = null;
   window.lightboxIndex = 0;
 
@@ -961,6 +964,46 @@ let latestByCategory = null;     // 記住最新資料，切換排序時不用�
       </div>`;
   }
 
+  function renderGrids(byCategory){
+    currentAlbums = [];
+    Object.entries(grids).forEach(([cat, el]) => {
+      if (!el) return;
+      const items = byCategory[cat];
+      items.sort((a, b) => {
+        const dateA = (a.datetime || '').replace(/[^0-9]/g, '');
+        const dateB = (b.datetime || '').replace(/[^0-9]/g, '');
+        return dateB.localeCompare(dateA);
+      });
+
+      if (cat === 'fancam') {
+        el.innerHTML = items.length
+          ? items.map(fancamCellHTML).join('')
+          : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
+        return;
+      }
+
+      if (currentSortMode === 'date') {
+        // 依日期排序：不合併場次，單張依時間先後排列（時間軸瀏覽）
+        el.innerHTML = items.length
+          ? items.map(cellHTML).join('')
+          : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
+        return;
+      }
+
+      // 依場次排序：同標題的照片合併成一本相簿
+      const groups = groupByTitle(items);
+      el.innerHTML = groups.length
+        ? groups.map(group => {
+            if (group.length > 1) {
+              const idx = currentAlbums.push(group) - 1;
+              return albumCellHTML(group, idx);
+            }
+            return cellHTML(group[0]);
+          }).join('')
+        : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
+    });
+  }
+
   const q = query(collection(db, 'photos'), orderBy('createdAt', 'desc'));
 
   let latestAllPhotos = [];
@@ -974,33 +1017,8 @@ let latestByCategory = null;     // 記住最新資料，切換排序時不用�
       if (byCategory[data.category]) byCategory[data.category].push(data);
     });
 
-currentAlbums = [];
-Object.entries(grids).forEach(([cat, el]) => {
-  if (!el) return;
-  const items = byCategory[cat];
-  items.sort((a, b) => {
-    const dateA = (a.datetime || '').replace(/[^0-9]/g, '');
-    const dateB = (b.datetime || '').replace(/[^0-9]/g, '');
-    return dateB.localeCompare(dateA);
-  });
-
-  if (cat === 'fancam') {
-    el.innerHTML = items.length
-      ? items.map(fancamCellHTML).join('')
-      : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
-  } else {
-    const groups = groupByTitle(items);
-    el.innerHTML = groups.length
-      ? groups.map(group => {
-          if (group.length > 1) {
-            const idx = currentAlbums.push(group) - 1;
-            return albumCellHTML(group, idx);
-          }
-          return cellHTML(group[0]);
-        }).join('')
-      : '<div class="empty-note">尚未上傳「' + cat + '」分類的照片</div>';
-  }
-});
+    latestByCategory = byCategory;
+    renderGrids(byCategory);
 if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
@@ -1204,6 +1222,16 @@ if (coverPreview && all.length){
   document.getElementById('search-input').addEventListener('input', (e) => {
     currentSearchQuery = e.target.value.trim().toLowerCase();
     applyFilters();
+  });
+
+  document.getElementById('sort-toggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || !latestByCategory) return;
+    currentSortMode = btn.dataset.sort;
+    document.querySelectorAll('#sort-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGrids(latestByCategory);
+    applyFilters(); // 重新套用目前的標籤/藝人/搜尋篩選
   });
   </script>
   <script>
