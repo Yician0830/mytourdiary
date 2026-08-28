@@ -604,7 +604,7 @@
   setupArtistAutocomplete(document.getElementById('f-artist'), document.getElementById('f-artist-list'));
   setupArtistAutocomplete(document.getElementById('e-artist'), document.getElementById('e-artist-list'));
 
-  const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場, 'fancam: '直拍精選' };
+  const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場', fancam: '直拍精選' };
 
   function renderPhotoList(){
     const items = currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter);
