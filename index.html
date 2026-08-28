@@ -817,7 +817,8 @@
         ${p.title ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span></div>` : ''}
       </a>`;
   }
-
+let currentSortMode = 'session'; // 'session' 依場次分相簿 / 'date' 依日期逐張排列
+let latestByCategory = null;     // 記住最新資料，切換排序時不用重新讀 Firestore
     let currentAlbums = [];
   window.lightboxGroup = null;
   window.lightboxIndex = 0;
