@@ -703,11 +703,27 @@
   const shareBtn = document.getElementById('lightboxShare');
   const shareMenu = document.getElementById('shareMenu');
 
-  shareBtn.addEventListener('click', (e) => {
+  shareBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!window.currentPhotoId) return;
     const { url, title } = getShareInfo();
+
     if (navigator.share) {
+      const imgEl = document.querySelector('#lightboxFrame img');
+      try {
+        if (imgEl && imgEl.src && navigator.canShare) {
+          const resp = await fetch(imgEl.src, { mode: 'cors' });
+          const blob = await resp.blob();
+          const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+          const file = new File([blob], 'photo.' + ext, { type: blob.type });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title, text: title });
+            return;
+          }
+        }
+      } catch (err) {
+        // 抓不到圖片檔案（例如網路問題），改用純連結分享
+      }
       navigator.share({ title, text: title, url }).catch(() => {});
       return;
     }
