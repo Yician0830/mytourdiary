@@ -16,7 +16,16 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet"><style>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+<!-- ===== PWA：manifest + icons + theme color ===== -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#171613">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CHEMERA">
+<style>
   :root{
     --paper:     #f4f2ec;
     --paper-2:   #ece8de;
@@ -931,7 +940,9 @@
         const flashClass = [...f.classList].find(c=>c.startsWith('flash-')) || '';
         lbFrame.className = 'lightbox-frame flash ' + flashClass;
         const img = f.querySelector('img');
-        lbFrame.innerHTML = img ? '<img src="'+img.src+'">' : '<div class="placeholder-mark">替換為你的照片</div>';
+        // 燈箱要放大顯示,優先用原始照片網址請求較高解析度版本,避免縮圖被放大而模糊
+        const fullSrc = f.dataset.fullUrl ? optimizeImg(f.dataset.fullUrl, 1600) : (img ? img.src : '');
+        lbFrame.innerHTML = fullSrc ? '<img src="'+fullSrc+'" decoding="async" crossorigin="anonymous">' : '<div class="placeholder-mark">替換為你的照片</div>';
         const capTitle = f.querySelector('.cap-title');
         const capMeta = f.querySelector('.cap-meta');
         const stamp = f.querySelector('.stamp');
@@ -1067,10 +1078,10 @@
 
         // 畫相片區域 (改成長方形,4:5 直式比例,加大)
         const photoW = 820;
-        const photoH = 1180;
+        const photoH = 1030;
         const targetAspect = photoW / photoH;
         const photoX = cardX + (cardW - photoW) / 2;
-        const photoY = cardY + 70;
+        const photoY = cardY + 90;
 
         // 保持比例填滿 (Cover) 裁切計算,依 offsetPercent 決定裁切位置
         const p = Math.min(100, Math.max(0, offsetPercent)) / 100;
@@ -1195,6 +1206,23 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
+  // ===== 圖片優化：透過 images.weserv.nl 免費圖片代理,將任意外部圖片
+  // 依需要的顯示寬度即時縮圖並轉成 WebP,大幅減少下載流量與加快載入速度。
+  // (weserv 也會補上 CORS 標頭,順便修好部分來源圖片在畫布合成/拍立得時的跨域問題)
+  function optimizeImg(url, width){
+    if (!url || typeof url !== 'string') return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.includes('images.weserv.nl')) return url; // 避免重複包裝
+    try {
+      const stripped = url.replace(/^https?:\/\//i, '');
+      let out = 'https://images.weserv.nl/?url=' + encodeURIComponent(stripped) + '&output=webp&q=82';
+      if (width) out += '&w=' + Math.round(width);
+      return out;
+    } catch (e) {
+      return url;
+    }
+  }
+
   // ===== 愛心收藏：用 localStorage 記住這個瀏覽器按過哪些照片，避免重複計算 =====
   function getLikedSet(){
     try { return new Set(JSON.parse(localStorage.getItem('likedPhotos') || '[]')); }
@@ -1244,7 +1272,7 @@
     const searchAttr = escapeHTML([p.title, p.artist, (p.tags || []).join(' ')].filter(Boolean).join(' ').toLowerCase());
     return `
       <a class="fancam-item flash flash-fancam" href="${escapeHTML(p.link || '#')}" target="_blank" rel="noopener" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-search="${searchAttr}">
-        <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
+        <img src="${escapeHTML(optimizeImg(p.url, 500))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="fancam-play">▶</div>
         ${(p.title || p.song) ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title || '')}</span>${p.song ? `<span class="cap-meta">${escapeHTML(p.song)}</span>` : ''}</div>` : ''}
       </a>`;
@@ -1261,7 +1289,7 @@
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const lbFrameEl = document.getElementById('lightboxFrame');
     lbFrameEl.className = 'lightbox-frame flash ' + flashClass;
-    lbFrameEl.innerHTML = '<img src="' + p.url + '">';
+    lbFrameEl.innerHTML = '<img src="' + escapeHTML(optimizeImg(p.url, 1600)) + '" decoding="async" crossorigin="anonymous">';
     document.getElementById('lightboxTitle').textContent = p.title || '';
     document.getElementById('lightboxMeta').textContent = (p.datetime ? p.datetime + '  ·  ' : '') + (p.venue || '');
     const extraLines = [];
@@ -1337,7 +1365,7 @@
     const albumModal = document.getElementById('albumModal');
     albumModalTitle.textContent = group[0].title || '';
     albumModalGrid.innerHTML = group.map((p, i) =>
-      `<img src="${p.url}" loading="lazy" data-photo-idx="${i}">`
+      `<img src="${escapeHTML(optimizeImg(p.url, 400))}" loading="lazy" decoding="async" data-photo-idx="${i}">`
     ).join('');
     albumModal.classList.add('open');
 
@@ -1377,7 +1405,7 @@
     const totalLikes = photos.reduce((sum, ph) => sum + (ph.likes || 0), 0);
     return `
       <div class="cell flash ${flashClass}" data-album-index="${albumIndex}" data-tags="${tagsAttr}" data-artist="${artistAttr}">
-        <img src="${escapeHTML(cover.url)}" loading="lazy" alt="${escapeHTML(cover.title || '')}">
+        <img src="${escapeHTML(optimizeImg(cover.url, 600))}" loading="lazy" decoding="async" alt="${escapeHTML(cover.title || '')}">
         <div class="album-badge">📷 ${photos.length} 張</div>
         <div class="like-badge"><span class="like-heart">♥</span> ${totalLikes}</div>
         ${cover.datetime ? `<div class="stamp">${escapeHTML(cover.datetime)}</div>` : ''}
@@ -1390,8 +1418,8 @@
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}">
-        <img src="${escapeHTML(p.url)}" loading="lazy" alt="${escapeHTML(p.title || '')}">
+      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}">
+        <img src="${escapeHTML(optimizeImg(p.url, 600))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="like-badge"><span class="like-heart">♥</span> ${p.likes || 0}</div>
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
         ${hasCaption ? `<div class="caption-bar"><span class="cap-title">${escapeHTML(p.title)}</span><span class="cap-meta">${escapeHTML(p.venue)}</span></div>` : ''}
@@ -1466,7 +1494,7 @@
       <div class="timeline-item">
         <div class="timeline-date">${escapeHTML(en.datetime || '日期未提供')}</div>
         <div class="timeline-item-inner">
-          ${en.coverUrl ? `<img class="timeline-thumb" src="${escapeHTML(en.coverUrl)}" loading="lazy">` : ''}
+          ${en.coverUrl ? `<img class="timeline-thumb" src="${escapeHTML(optimizeImg(en.coverUrl, 150))}" loading="lazy" decoding="async">` : ''}
           <div>
             <div class="timeline-title">${escapeHTML(en.title)}</div>
             <div class="timeline-meta">
@@ -1555,7 +1583,7 @@ if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
     const framesHTML = shuffled.slice(0, 7).map(p =>
-        `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(p.url)}" loading="lazy"></div>`
+        `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(optimizeImg(p.url, 400))}" loading="lazy" decoding="async"></div>`
       ).join('');
   coverPreview.innerHTML = '<div class="cover-bottom-track">' + framesHTML + framesHTML + '</div>';
     }
@@ -1731,7 +1759,8 @@ if (coverPreview && all.length){
         if (match){
           const coverPhoto = matchedPhotos[0];
           const img = el.querySelector('img');
-          if (img && img.src !== coverPhoto.url) img.src = coverPhoto.url;
+          const optimizedCover = optimizeImg(coverPhoto.url, 600);
+          if (img && img.src !== optimizedCover) img.src = optimizedCover;
           const stampEl = el.querySelector('.stamp');
           if (stampEl) stampEl.textContent = coverPhoto.datetime || '';
           visibleCount++;
@@ -1816,6 +1845,15 @@ if (coverPreview && all.length){
       document.querySelector('.nav-links').classList.remove('open');
     });
   });
+</script>
+
+<script>
+  // ===== PWA：註冊 Service Worker，加速重複造訪並支援離線開啟骨架頁面 =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
 </script>
 
 </body>
