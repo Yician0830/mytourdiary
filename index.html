@@ -991,6 +991,15 @@
 
 <div class="lightbox" id="albumModal">
   <div class="lightbox-close" id="albumModalClose">關閉 ✕</div>
+  <div class="lightbox-share-wrap">
+    <div class="lightbox-share" id="albumShareBtn">🔗 分享整場相簿</div>
+    <div class="share-menu" id="albumShareMenu">
+      <button type="button" id="albumShareThreads">分享到 Threads</button>
+      <button type="button" id="albumShareLine">分享到 LINE</button>
+      <button type="button" id="albumShareX">分享到 X</button>
+      <button type="button" id="albumShareCopy">複製連結</button>
+    </div>
+  </div>
   <div class="lightbox-inner" style="max-width:900px;">
     <h3 id="albumModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:16px; text-align:center; font-size:22px;"></h3>
     <div class="album-modal-grid" id="albumModalGrid"></div>
@@ -1190,6 +1199,74 @@
     }
   });
 
+  /* ===== 分享「整場相簿」連結（跟分享單張照片是分開的一組按鈕）===== */
+  window.currentAlbumInfo = null;
+
+  function getAlbumShareInfo(){
+    const info = window.currentAlbumInfo || {};
+    const url = location.origin + location.pathname
+      + '?album=' + encodeURIComponent(info.title || '')
+      + '&cat=' + encodeURIComponent(info.category || '');
+    const title = (info.title ? info.title + '｜' : '') + '整場相簿';
+    return { url, title };
+  }
+
+  const albumShareBtn = document.getElementById('albumShareBtn');
+  const albumShareMenu = document.getElementById('albumShareMenu');
+
+  albumShareBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!window.currentAlbumInfo) return;
+    const { url, title } = getAlbumShareInfo();
+
+    if (navigator.share) {
+      navigator.share({ title, text: title, url }).catch(() => {});
+      return;
+    }
+    albumShareMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!albumShareMenu.contains(e.target) && e.target !== albumShareBtn) albumShareMenu.classList.remove('open');
+  });
+
+  document.getElementById('albumShareThreads').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getAlbumShareInfo();
+    window.open('https://www.threads.net/intent/post?text=' + encodeURIComponent(title + ' ' + url), '_blank');
+    albumShareMenu.classList.remove('open');
+  });
+
+  document.getElementById('albumShareLine').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getAlbumShareInfo();
+    window.open('https://social-plugins.line.me/lineit/share?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title), '_blank');
+    albumShareMenu.classList.remove('open');
+  });
+
+  document.getElementById('albumShareX').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url, title } = getAlbumShareInfo();
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url), '_blank');
+    albumShareMenu.classList.remove('open');
+  });
+
+  document.getElementById('albumShareCopy').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const { url } = getAlbumShareInfo();
+    const btn = e.target;
+    const done = () => {
+      const original = btn.textContent;
+      btn.textContent = '已複製 ✓';
+      setTimeout(() => { btn.textContent = original; albumShareMenu.classList.remove('open'); }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => prompt('複製這個連結：', url));
+    } else {
+      prompt('複製這個連結：', url);
+    }
+  });
+
   /* ===== 照片下載 Logic（僅在該張照片開放下載時才會顯示按鈕）===== */
   const downloadBtn = document.getElementById('lightboxDownload');
   const downloadMenu = document.getElementById('downloadMenu');
@@ -1217,6 +1294,7 @@
   // 若圖床跨域限制導致 fetch 失敗，退回用開新分頁的方式讓使用者自行儲存。
   async function downloadPhoto(url, sizeLabel){
     if (!url) return;
+    incrementPhotoStat(window.currentPhotoId, 'downloads');
     try {
       const res = await fetch(url, { mode: 'cors' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1531,6 +1609,17 @@ const grids = {
     if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(p.id, p.likes || 0);
     window.updateLightboxNav();
     preloadAdjacentLightboxPhotos();
+    incrementPhotoStat(p.id, 'views');
+  }
+
+  // 幫某張照片的統計欄位（觀看次數 views / 下載次數 downloads）+1，寫回 Firestore
+  async function incrementPhotoStat(id, field){
+    if (!id) return;
+    try {
+      await updateDoc(doc(db, 'photos', id), { [field]: increment(1) });
+    } catch (err) {
+      console.error('更新' + field + '統計失敗：', err);
+    }
   }
 
   // ===== 預先載入燈箱的上一張／下一張照片 =====
@@ -1621,6 +1710,7 @@ const grids = {
       : fullGroup;
     if (!group.length) return;
     currentModalGroup = group;
+    window.currentAlbumInfo = { title: group[0].title || '', category: group[0].category || '' };
     const albumModalTitle = document.getElementById('albumModalTitle');
     const albumModalGrid = document.getElementById('albumModalGrid');
     const albumModal = document.getElementById('albumModal');
@@ -1978,8 +2068,9 @@ const grids = {
   function restoreScrollPosition(){
     if (scrollRestored) return;
     scrollRestored = true;
-    // 網址帶了錨點（#xxx）或分享的照片參數（?photo=xxx）時，優先服從那個跳轉，不做捲動還原
-    if (location.hash || new URLSearchParams(location.search).get('photo')) return;
+    // 網址帶了錨點（#xxx）或分享的照片／相簿參數（?photo=xxx／?album=xxx）時，優先服從那個跳轉，不做捲動還原
+    const sharedParams = new URLSearchParams(location.search);
+    if (location.hash || sharedParams.get('photo') || sharedParams.get('album') !== null) return;
     try {
       const saved = sessionStorage.getItem(SCROLL_KEY);
       if (saved !== null) {
@@ -2026,10 +2117,31 @@ if (coverPreview && all.length){
     updateColophonStats(all);
     bindLightbox();
     handleSharedPhotoLink(all);
+    handleSharedAlbumLink();
     restoreScrollPosition();
   }, (err) => {
     console.error('讀取 Firestore 照片失敗：', err);
   });
+
+  // ===== 分享「整場相簿」連結：網址帶 ?album=<場次標題>&cat=<分類> 時，開啟後直接彈出該場次的相簿彈窗 =====
+  let sharedAlbumLinkHandled = false;
+  function handleSharedAlbumLink(){
+    if (sharedAlbumLinkHandled) return;
+    const params = new URLSearchParams(location.search);
+    const albumTitle = params.get('album');
+    if (albumTitle === null) { sharedAlbumLinkHandled = true; return; }
+    sharedAlbumLinkHandled = true;
+    const cat = params.get('cat') || '';
+    const idx = currentAlbums.findIndex(group =>
+      group[0] && (group[0].title || '') === albumTitle && (!cat || group[0].category === cat)
+    );
+    if (idx === -1) return;
+    window.openAlbumModal(idx);
+    const targetCat = cat || (currentAlbums[idx][0] && currentAlbums[idx][0].category);
+    const targetSection = targetCat ? document.getElementById(targetCat) : null;
+    if (targetSection) targetSection.scrollIntoView({ behavior: 'instant', block: 'start' });
+    if (albumTitle) document.title = albumTitle + '｜整場相簿｜_CHEMERA_ DIARY';
+  }
 
   let sharedLinkHandled = false;
   function handleSharedPhotoLink(all){

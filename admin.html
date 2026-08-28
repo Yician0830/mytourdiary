@@ -96,18 +96,43 @@
   .progress{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); margin-top:14px; }
 
   /* ===== PHOTO LIST ===== */
+  .list-toolbar{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  .list-toolbar input[type="text"]{
+    flex:1; min-width:200px; padding:10px 12px; border:1px solid var(--line-strong);
+    background:var(--paper); font-family:var(--sans); font-size:13px; color:var(--ink);
+  }
+  .list-toolbar input[type="text"]:focus{ outline:none; border-color:var(--press); }
+  .sort-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .sort-row button{ background:var(--paper-2); color:var(--ink-dim); font-size:10px; padding:9px 12px; }
+  .sort-row button.active{ background:var(--ink); color:var(--paper); }
+
+  .batch-bar{
+    display:none; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--paper-2); border:1px solid var(--line-strong); padding:12px 14px; margin-bottom:18px;
+  }
+  .batch-bar.show{ display:flex; }
+  .batch-bar .select-all-label{ display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; }
+  .batch-bar .select-all-label input{ width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none; }
+  .batch-bar .count{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); }
+  .batch-bar button{ padding:9px 14px; font-size:11px; }
+
   .filter-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
   .filter-row button{ background:var(--paper-2); color:var(--ink-dim); }
   .filter-row button.active{ background:var(--ink); color:var(--paper); }
 
   .photo-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
-  .photo-item{ border:1px solid var(--line); background:var(--paper-2); overflow:hidden; display:flex; flex-direction:column; height:100%; }
+  .photo-item{ border:1px solid var(--line); background:var(--paper-2); overflow:hidden; display:flex; flex-direction:column; height:100%; position:relative; }
+  .photo-item .select-box{
+    position:absolute; top:8px; left:8px; z-index:2; width:20px; height:20px; padding:0; margin:0;
+    accent-color:var(--press); cursor:pointer;
+  }
   .photo-item .thumb{ aspect-ratio:4/5; overflow:hidden; }
   .photo-item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .photo-item .info{ padding:10px 12px; flex:1; }
   .photo-item .info .t{ font-size:13px; font-weight:500; margin-bottom:2px; }
   .photo-item .info .m{ font-family:var(--mono); font-size:10px; color:var(--ink-faint); }
   .photo-item .info .cat{ display:inline-block; font-family:var(--mono); font-size:10px; color:var(--press); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em; }
+  .photo-item .info .stats{ font-family:var(--mono); font-size:10px; color:var(--ink-faint); margin-top:6px; display:flex; gap:10px; }
   .photo-item .del{
     width:100%; background:none; color:var(--press); border-top:1px solid var(--line);
     font-family:var(--mono); font-size:11px; padding:8px; letter-spacing:0.05em;
@@ -274,6 +299,15 @@
     <!-- 照片管理 -->
     <div class="card">
       <h2>已上傳的照片</h2>
+      <div class="list-toolbar">
+        <input type="text" id="search-input" placeholder="搜尋標題／標籤／藝人／地點…">
+        <div class="sort-row" id="sort-row">
+          <button data-sort="new" class="active">上傳新到舊</button>
+          <button data-sort="likes">讚數高到低</button>
+          <button data-sort="downloads">下載次數高到低</button>
+          <button data-sort="views">觀看次數高到低</button>
+        </div>
+      </div>
       <div class="filter-row" id="filter-row">
   <button data-cat="all" class="active">全部</button>
   <button data-cat="stage">舞台</button>
@@ -282,6 +316,14 @@
   <button data-cat="airport">機場</button>
   <button data-cat="fancam">直拍</button>
 </div>
+      <div class="batch-bar" id="batch-bar">
+        <label class="select-all-label"><input type="checkbox" id="select-all-box"> 全選（此篩選範圍內）</label>
+        <span class="count" id="batch-count">已選取 0 張</span>
+        <button type="button" id="batch-allow-dl">批次開放下載</button>
+        <button type="button" id="batch-deny-dl">批次設為不可下載</button>
+        <button type="button" id="batch-add-tags">批次加標籤</button>
+        <button type="button" class="btn-ghost" id="batch-clear">取消選取</button>
+      </div>
       <div class="photo-grid" id="photo-grid"></div>
       <div class="empty" id="empty-note" style="display:none;">目前這個分類還沒有照片</div>
     </div>
@@ -378,7 +420,7 @@
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import {
-        getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp
+        getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp, increment, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
   // ===== 你的專案設定（已填好） =====
@@ -667,14 +709,68 @@
 
   const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場', fancam: '直拍精選' };
 
+  // ===== 搜尋 / 排序 / 批次選取狀態 =====
+  let currentSearch = '';
+  let currentSort = 'new'; // 'new' 上傳新到舊 / 'likes' 讚數 / 'downloads' 下載次數 / 'views' 觀看次數
+  const selectedIds = new Set();
+
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', () => {
+    currentSearch = searchInput.value.trim().toLowerCase();
+    renderPhotoList();
+  });
+
+  const sortRow = document.getElementById('sort-row');
+  sortRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    currentSort = btn.dataset.sort;
+    [...sortRow.children].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPhotoList();
+  });
+
+  function photoMatchesSearch(p){
+    if(!currentSearch) return true;
+    const haystack = [p.title, p.artist, p.venue, p.city, (p.tags || []).join(' ')]
+      .filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(currentSearch);
+  }
+
+  function getFilteredSortedItems(){
+    let items = (currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter))
+      .filter(photoMatchesSearch);
+    if(currentSort === 'likes') items = [...items].sort((a,b) => (b.likes||0) - (a.likes||0));
+    else if(currentSort === 'downloads') items = [...items].sort((a,b) => (b.downloads||0) - (a.downloads||0));
+    else if(currentSort === 'views') items = [...items].sort((a,b) => (b.views||0) - (a.views||0));
+    // 'new' 保持 allPhotos 原本依 createdAt 新到舊的順序
+    return items;
+  }
+
+  const batchBar = document.getElementById('batch-bar');
+  const batchCount = document.getElementById('batch-count');
+  const selectAllBox = document.getElementById('select-all-box');
+
+  function updateBatchBar(visibleIds){
+    batchCount.textContent = `已選取 ${selectedIds.size} 張`;
+    batchBar.classList.toggle('show', selectedIds.size > 0);
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+    selectAllBox.checked = allSelected;
+  }
+
   function renderPhotoList(){
-    const items = currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter);
+    const items = getFilteredSortedItems();
+    // 移除目前已經不存在（例如已刪除）的選取狀態
+    const validIds = new Set(allPhotos.map(p => p.id));
+    Array.from(selectedIds).forEach(id => { if(!validIds.has(id)) selectedIds.delete(id); });
+
     photoGrid.innerHTML = '';
     emptyNote.style.display = items.length ? 'none' : 'block';
     items.forEach(p => {
       const el = document.createElement('div');
       el.className = 'photo-item';
       el.innerHTML = `
+        <input type="checkbox" class="select-box" data-id="${p.id}" ${selectedIds.has(p.id) ? 'checked' : ''}>
         <div class="thumb"><img src="${p.url}" loading="lazy"></div>
         <div class="info">
           <div class="cat">${CAT_LABEL[p.category] || p.category}</div>
@@ -683,6 +779,7 @@
           <div class="m">${escapeHTML(p.venue) || ''} ${p.datetime ? ' · ' + escapeHTML(p.datetime) : ''}</div>
           ${p.city ? `<div class="m">📍 ${escapeHTML(p.city)}</div>` : ''}
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
+          <div class="stats"><span>♥ ${p.likes || 0}</span><span>👁 ${p.views || 0}</span><span>⬇ ${p.downloads || 0}</span></div>
         </div>
         <div class="btn-row">
           <button class="dl-toggle" data-id="${p.id}" data-state="${p.allowDownload ? '1' : '0'}">${p.allowDownload ? '✅ 可下載' : '🔒 不可下載'}</button>
@@ -717,7 +814,79 @@
         }
       });
     });
+    photoGrid.querySelectorAll('.select-box').forEach(box => {
+      box.addEventListener('click', (e) => e.stopPropagation());
+      box.addEventListener('change', () => {
+        const id = box.dataset.id;
+        if(box.checked) selectedIds.add(id); else selectedIds.delete(id);
+        updateBatchBar(items.map(p => p.id));
+      });
+    });
+    updateBatchBar(items.map(p => p.id));
   }
+
+  // ===== 批次操作 =====
+  selectAllBox.addEventListener('change', () => {
+    const items = getFilteredSortedItems();
+    if(selectAllBox.checked) items.forEach(p => selectedIds.add(p.id));
+    else items.forEach(p => selectedIds.delete(p.id));
+    renderPhotoList();
+  });
+
+  document.getElementById('batch-clear').addEventListener('click', () => {
+    selectedIds.clear();
+    renderPhotoList();
+  });
+
+  async function runBatchUpdate(applyFn){
+    if(!selectedIds.size) return;
+    const batch = writeBatch(db);
+    selectedIds.forEach(id => {
+      const ref = doc(db, 'photos', id);
+      applyFn(batch, ref);
+    });
+    try{
+      await batch.commit();
+    }catch(err){
+      console.error(err);
+      alert('批次更新失敗，請稍後再試一次');
+    }
+  }
+
+  document.getElementById('batch-allow-dl').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { allowDownload: true }));
+    e.target.disabled = false;
+  });
+
+  document.getElementById('batch-deny-dl').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { allowDownload: false }));
+    e.target.disabled = false;
+  });
+
+  document.getElementById('batch-add-tags').addEventListener('click', async (e) => {
+    const raw = prompt('要幫選取的 ' + selectedIds.size + ' 張照片加上哪些標籤？(用逗號分隔)');
+    if(raw === null) return;
+    const newTags = parseTagsInput(raw);
+    if(!newTags.length) return;
+    e.target.disabled = true;
+    const batch = writeBatch(db);
+    selectedIds.forEach(id => {
+      const p = allPhotos.find(x => x.id === id);
+      if(!p) return;
+      const merged = Array.from(new Set([...(p.tags || []), ...newTags]));
+      batch.update(doc(db, 'photos', id), { tags: merged });
+    });
+    try{
+      await batch.commit();
+    }catch(err){
+      console.error(err);
+      alert('批次加標籤失敗，請稍後再試一次');
+    }finally{
+      e.target.disabled = false;
+    }
+  });
 
     // ===== 編輯照片 =====
   const editOverlay = document.getElementById('edit-overlay');
