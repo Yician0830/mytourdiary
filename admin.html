@@ -191,9 +191,9 @@
           <label>分類</label>
           <select id="f-category">
   <option value="stage">舞台焦點 On Stage</option>
+   <option value="fanmeet">近距離 Face to Face</option>
+  <option value="school">校唱 School Sing</option>          
   <option value="airport">飛行日記 Candid</option>
-  <option value="fanmeet">近距離 Face to Face</option>
-  <option value="school">校唱 School Sing</option>   <!-- 新增這行 -->
   <option value="fancam">直拍精選 Fancam</option>
 </select>
         </div>
@@ -245,12 +245,13 @@
     <div class="card">
       <h2>已上傳的照片</h2>
       <div class="filter-row" id="filter-row">
-        <button data-cat="all" class="active">全部</button>
-        <button data-cat="stage">舞台</button>
-        <button data-cat="airport">機場</button>
-        <button data-cat="fanmeet">見面會</button>
-        <button data-cat="fancam">直拍</button>
-      </div>
+  <button data-cat="all" class="active">全部</button>
+  <button data-cat="stage">舞台</button>
+  <button data-cat="fanmeet">見面會</button>         
+  <button data-cat="school">校唱</button>  
+  <button data-cat="airport">機場</button>
+  <button data-cat="fancam">直拍</button>
+</div>
       <div class="photo-grid" id="photo-grid"></div>
       <div class="empty" id="empty-note" style="display:none;">目前這個分類還沒有照片</div>
     </div>
@@ -263,11 +264,12 @@
     <div class="field">
       <label>分類</label>
       <select id="e-category">
-        <option value="stage">舞台之上 On Stage</option>
-        <option value="airport">直擊現場 Candid</option>
-        <option value="fanmeet">近距離 Face to Face</option>
-        <option value="fancam">直拍精選 Fancam</option>
-      </select>
+  <option value="stage">舞台焦點 On Stage</option>
+  <option value="fanmeet">近距離 Face to Face</option>
+  <option value="school">校唱 School Sing</option>   <!-- 新增這行 -->     
+  <option value="airport">飛行日記 Candid</option>
+  <option value="fancam">直拍精選 Fancam</option>
+</select>
     </div>
     <div class="field">
       <label>日期時間</label>
@@ -602,7 +604,7 @@
   setupArtistAutocomplete(document.getElementById('f-artist'), document.getElementById('f-artist-list'));
   setupArtistAutocomplete(document.getElementById('e-artist'), document.getElementById('e-artist-list'));
 
-  const CAT_LABEL = { stage: '舞台焦點', airport: '飛行日記', fanmeet: '近距離', fancam: '直拍精選' };
+  const CAT_LABEL = { stage: '舞台', fanmeet: '見面會', school: '校唱', airport: '機場, 'fancam: '直拍精選' };
 
   function renderPhotoList(){
     const items = currentFilter === 'all' ? allPhotos : allPhotos.filter(p => p.category === currentFilter);
