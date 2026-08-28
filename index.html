@@ -748,6 +748,24 @@
   }, { threshold:0.12 });
   reveals.forEach(el=>io.observe(el));
 
+  // ===== 修正：直接帶錨點(#xxx)開啟頁面時，畫面瞬間跳轉導致 IntersectionObserver
+  // 來不及判斷、.reveal 區塊永遠停在 opacity:0 的問題。
+  // 這裡在載入完成／錨點跳轉後，主動檢查目前畫面內的區塊，強制補上 .in。
+  function revealVisibleNow(){
+    reveals.forEach(el=>{
+      if (el.classList.contains('in')) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0){
+        el.classList.add('in');
+        io.unobserve(el);
+      }
+    });
+  }
+  window.addEventListener('load', revealVisibleNow);
+  window.addEventListener('hashchange', revealVisibleNow);
+  // 保險：萬一瀏覽器的錨點跳轉比 load 事件還晚一點點才完成，再補查一次
+  setTimeout(revealVisibleNow, 300);
+
   const lightbox = document.getElementById('lightbox');
   const lbFrame = document.getElementById('lightboxFrame');
   const lbTitle = document.getElementById('lightboxTitle');
