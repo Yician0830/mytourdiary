@@ -981,21 +981,6 @@
     const { url, title } = getShareInfo();
 
     if (navigator.share) {
-      const imgEl = document.querySelector('#lightboxFrame img');
-      try {
-        if (imgEl && imgEl.src && navigator.canShare) {
-          const resp = await fetch(imgEl.src, { mode: 'cors' });
-          const blob = await resp.blob();
-          const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-          const file = new File([blob], 'photo.' + ext, { type: blob.type });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title, text: `${title}\n${url}` });
-            return;
-          }
-        }
-      } catch (err) {
-        // 抓不到圖片檔案（例如網路問題），改用純連結分享
-      }
       navigator.share({ title, text: title, url }).catch(() => {});
       return;
     }
@@ -1066,11 +1051,11 @@
         ctx.fillStyle = '#f4f2ec';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 拍立得白框尺寸(加長,底部留白更多、更有拍立得感)
+        // 拍立得白框尺寸(再加長、照片區域加大,文字貼近底部)
         const cardW = 900;
-        const cardH = 1350;
+        const cardH = 1560;
         const cardX = (1080 - cardW) / 2;
-        const cardY = 260;
+        const cardY = 200;
 
         // 畫白框陰影與底色
         ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
@@ -1080,10 +1065,10 @@
         ctx.fillRect(cardX, cardY, cardW, cardH);
         ctx.shadowColor = 'transparent'; // 重置陰影
 
-        // 畫相片區域 (1:1 比例)
-        const photoSize = 780;
+        // 畫相片區域 (1:1 比例,加大)
+        const photoSize = 850;
         const photoX = cardX + (cardW - photoSize) / 2;
-        const photoY = cardY + 60;
+        const photoY = cardY + 90;
 
         // 保持比例填滿 (Cover) 裁切計算,依 offsetPercent 決定裁切位置
         const p = Math.min(100, Math.max(0, offsetPercent)) / 100;
@@ -1102,21 +1087,22 @@
 
         ctx.drawImage(image, sx, sy, sWidth, sHeight, photoX, photoY, photoSize, photoSize);
 
-        // 寫文字：標題與地點/時間
+        // 寫文字：標題與地點/時間(貼近卡片底部)
+        const cardBottom = cardY + cardH;
         ctx.fillStyle = '#15130f';
         ctx.font = 'bold 36px "Zen Maru Gothic", sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(title, photoX, photoY + photoSize + 80);
+        ctx.fillText(title, photoX, cardBottom - 150);
 
         ctx.fillStyle = '#888888';
         ctx.font = '24px "Fredoka", monospace';
-        ctx.fillText(meta, photoX, photoY + photoSize + 130);
+        ctx.fillText(meta, photoX, cardBottom - 100);
 
         // 頁尾品牌 Mark
         ctx.fillStyle = '#cc2036';
         ctx.font = 'bold 28px "Archivo Black", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('_CHEMERA_ DIARY', 540, 1810);
+        ctx.fillText('_CHEMERA_ DIARY', 540, cardBottom + 70);
 
         document.getElementById('polaroidImg').src = canvas.toDataURL('image/png');
       }
