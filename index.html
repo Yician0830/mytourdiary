@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>_CHEMERA_</title>
+<script>
+  // 及早套用深色模式，避免畫面先閃一下亮色再切換
+  (function(){
+    try{
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) document.documentElement.setAttribute('data-theme', 'dark');
+    }catch(e){}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet"><style>
@@ -22,6 +32,19 @@
     --sans: 'Fredoka', 'Noto Serif TC', -apple-system, sans-serif;
     --mono: 'Fredoka', 'Zen Maru Gothic', monospace;
   }
+  html[data-theme="dark"]{
+    --paper:     #171613;
+    --paper-2:   #201f1b;
+    --ink:       #f2efe6;
+    --ink-dim:   #b8b2a2;
+    --ink-faint: #7a7466;
+    --line:      rgba(242,239,230,0.14);
+    --line-strong: rgba(242,239,230,0.3);
+    --press:     #ff5468;
+    --lcd:       #ffab3f;
+  }
+  html{ transition:background-color .25s ease; }
+  body{ transition:background-color .25s ease, color .25s ease; }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html{ scroll-behavior:smooth; }
   html{ overflow-x:hidden; }
@@ -58,6 +81,15 @@
     transition:color .2s;
   }
   .nav-links a:hover{ color:var(--press); }
+  .theme-toggle{
+    width:34px; height:34px; border-radius:50%; border:1px solid var(--line-strong);
+    background:transparent; color:var(--ink); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+    margin-left:18px; transition:background .2s, color .2s, border-color .2s;
+    flex:0 0 auto;
+  }
+  .theme-toggle:hover{ border-color:var(--press); color:var(--press); }
+  @media (max-width:640px){ .theme-toggle{ margin-left:10px; } }
   .nav-toggle{
   display:none;
   background:none; border:none; cursor:pointer;
@@ -520,6 +552,7 @@
     <a href="#timeline">總覽</a>
     <a href="#contact">聯絡</a>
   </div>
+  <button type="button" class="theme-toggle" id="themeToggle" aria-label="切換深色模式">🌙</button>
 </nav>
 
 <!-- ===== COVER ===== -->
@@ -761,6 +794,28 @@
   </div>
 </div>
 
+<script>
+  // ===== 深色模式切換按鈕 =====
+  (function(){
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    function syncIcon(){
+      btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+    }
+    syncIcon();
+    btn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark){
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      syncIcon();
+    });
+  })();
+</script>
 <script>
   const reveals = document.querySelectorAll('.reveal');
   const io = new IntersectionObserver((entries)=>{
