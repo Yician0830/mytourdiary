@@ -1351,15 +1351,42 @@
   const shareBtn = document.getElementById('lightboxShare');
   const shareMenu = document.getElementById('shareMenu');
 
+  // 嘗試把照片本身抓成檔案來分享（連同連結一起帶過去），失敗就退回「只分享連結」
+  async function tryShareWithImageFile(url, title, shareText){
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const base = sanitizeFileBase(title);
+      const file = new File([blob], base + '.' + extFromMime(blob.type), { type: blob.type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text: shareText });
+        return true;
+      }
+    } catch (err) {
+      console.error('分享圖片檔案失敗，改為只分享連結：', err);
+    }
+    return false;
+  }
+
   shareBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!window.currentPhotoId) return;
     const { url, title } = getShareInfo();
+    const shareText = title + '\n' + url;
 
     if (navigator.share) {
+      // 只有這張照片有開放下載時，才嘗試連圖片檔案一起分享；
+      // 沒開放下載的照片維持只分享連結，避免變相繞過「不可下載」的設定。
+      if (window.currentPhotoAllowDownload){
+        const fn = window.optimizeImg;
+        const shareUrl = fn ? fn(window.currentPhotoUrl, 1920) : window.currentPhotoUrl;
+        const shared = await tryShareWithImageFile(shareUrl, title, shareText);
+        if (shared) return;
+      }
       // 部分分享目標(如 Threads)在系統分享時會忽略獨立的 url 欄位、只帶 text，
       // 所以把連結直接寫進 text 裡，確保不管分享到哪裡連結都會一起帶過去。
-      navigator.share({ title, text: title + '\n' + url, url }).catch(() => {});
+      navigator.share({ title, text: shareText, url }).catch(() => {});
       return;
     }
     shareMenu.classList.toggle('open');
@@ -2014,16 +2041,52 @@ const grids = {
   document.getElementById('lightboxNext').addEventListener('click', (e)=>{ e.stopPropagation(); window.lightboxNext(); });
 
   (function(){
+    // 手勢滑動：手指拖曳時圖片即時跟著位移，放開後依距離決定切換到上一張／下一張，
+    // 距離不夠就彈回原位；同時比較 X/Y 位移，避免跟畫面垂直捲動互相干擾。
     let touchStartX = null;
+    let touchStartY = null;
+    let touchCurrentX = null;
+    let dragging = false;
     const frameEl = document.getElementById('lightboxFrame');
-    frameEl.addEventListener('touchstart', (e)=>{ touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+    function getFrameImg(){ return frameEl.querySelector('img'); }
+
+    frameEl.addEventListener('touchstart', (e)=>{
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+      touchCurrentX = touchStartX;
+      dragging = false;
+    }, {passive:true});
+
+    frameEl.addEventListener('touchmove', (e)=>{
+      if (touchStartX === null) return;
+      const t = e.changedTouches[0];
+      const dx = t.screenX - touchStartX;
+      const dy = t.screenY - touchStartY;
+      if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) dragging = true;
+      if (dragging){
+        touchCurrentX = t.screenX;
+        const img = getFrameImg();
+        if (img){
+          img.style.transition = 'none';
+          img.style.transform = `translateX(${dx}px)`;
+          img.style.opacity = String(Math.max(0.4, 1 - Math.abs(dx) / 500));
+        }
+      }
+    }, {passive:true});
+
     frameEl.addEventListener('touchend', (e)=>{
       if (touchStartX === null) return;
-      const dx = e.changedTouches[0].screenX - touchStartX;
-      if (Math.abs(dx) > 40){
+      const dx = (touchCurrentX ?? touchStartX) - touchStartX;
+      const img = getFrameImg();
+      if (img){
+        img.style.transition = 'transform .25s ease, opacity .25s ease';
+        img.style.transform = '';
+        img.style.opacity = '';
+      }
+      if (dragging && Math.abs(dx) > 40){
         if (dx < 0) window.lightboxNext(); else window.lightboxPrev();
       }
-      touchStartX = null;
+      touchStartX = null; touchStartY = null; touchCurrentX = null; dragging = false;
     });
   })();
 

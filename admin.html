@@ -7,7 +7,9 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet"><style>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
+<style>
 
   :root{
     --paper:#f4f2ec; --paper-2:#ece8de; --ink:#15130f; --ink-dim:#56503f; --ink-faint:#96907d;
@@ -94,7 +96,14 @@
   .drop.drag{ border-color:var(--press); background:var(--paper-2); }
   .drop input{ display:none; }
   .preview-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .preview-list img{ width:64px; height:64px; object-fit:cover; border:1px solid var(--line); }
+  .preview-item{ position:relative; width:64px; height:64px; }
+  .preview-item img{ width:64px; height:64px; object-fit:cover; border:1px solid var(--line); display:block; }
+  .preview-item.dup img{ border:2px solid var(--press); }
+  .preview-item .dup-badge{
+    position:absolute; left:0; right:0; bottom:0; background:rgba(204,32,54,0.88); color:#fff;
+    font-family:var(--mono); font-size:8px; line-height:1.3; text-align:center; padding:2px 0;
+  }
+  .exif-status{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); margin-top:8px; min-height:14px; }
 
   .progress{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); margin-top:14px; }
 
@@ -219,9 +228,10 @@
       <h2>上傳新照片</h2>
       <div class="upload-grid">
         <div class="drop" id="drop">
-          點擊或拖曳照片到這裡上傳(可一次選多張)
+          點擊或拖曳照片到這裡上傳(可一次選多張)<br>選取後會自動讀取第一張的 EXIF 並偵測是否重複上傳過
           <input type="file" id="file-input" accept="image/*" multiple>
           <div class="preview-list" id="preview-list"></div>
+          <div class="exif-status" id="exif-status"></div>
         </div>
         <div class="field">
           <label>分類</label>
@@ -664,14 +674,77 @@
   });
   fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
-  function handleFiles(fileList){
+  let fileHashes = new Map(); // 原始檔案 -> SHA-256 雜湊值，用來判斷是否重複上傳
+  const exifStatusEl = document.getElementById('exif-status');
+
+  async function handleFiles(fileList){
     selectedFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
     previewList.innerHTML = '';
-    selectedFiles.forEach(f => {
+    exifStatusEl.textContent = '';
+    fileHashes = new Map();
+
+    const wrappers = selectedFiles.map(f => {
+      const wrap = document.createElement('div');
+      wrap.className = 'preview-item';
       const img = document.createElement('img');
       img.src = URL.createObjectURL(f);
-      previewList.appendChild(img);
+      wrap.appendChild(img);
+      previewList.appendChild(wrap);
+      return wrap;
     });
+
+    if(selectedFiles.length === 0) return;
+
+    // ===== EXIF 自動讀取：從第一張照片讀出焦距／光圈／ISO／拍攝設備，自動帶入表單（欄位已有內容則不覆蓋）=====
+    (async () => {
+      try{
+        if(typeof exifr === 'undefined') return;
+        const meta = await exifr.parse(selectedFiles[0], { tiff:true, exif:true, ifd0:true });
+        if(!meta) return;
+        const focalEl = document.getElementById('f-exif-focal');
+        const isoEl = document.getElementById('f-exif-iso');
+        const apertureEl = document.getElementById('f-exif-aperture');
+        const equipmentEl = document.getElementById('f-equipment');
+        let filled = [];
+        if(meta.FocalLength && !focalEl.value){ focalEl.value = Math.round(meta.FocalLength); filled.push('焦距'); }
+        if(meta.FNumber && !apertureEl.value){ apertureEl.value = meta.FNumber; filled.push('光圈'); }
+        if(meta.ISO && !isoEl.value){ isoEl.value = meta.ISO; filled.push('ISO'); }
+        if((meta.Make || meta.Model) && !equipmentEl.value){
+          equipmentEl.value = [meta.Make, meta.Model].filter(Boolean).join(' ');
+          filled.push('拍攝設備');
+        }
+        exifStatusEl.textContent = filled.length ? ('📷 已從照片自動帶入：' + filled.join('、')) : '📷 這張照片沒有偵測到 EXIF 資訊，請手動填寫';
+      }catch(err){
+        console.error('EXIF 讀取失敗', err);
+      }
+    })();
+
+    // ===== 重複照片偵測：用檔案內容算 SHA-256，比對「已上傳過的照片」與「這次同批選取的其他照片」=====
+    const existingHashes = new Set(allPhotos.map(p => p.hash).filter(Boolean));
+    const seenInBatch = new Set();
+    for(let i = 0; i < selectedFiles.length; i++){
+      try{
+        const hash = await hashFile(selectedFiles[i]);
+        fileHashes.set(selectedFiles[i], hash);
+        const isDup = existingHashes.has(hash) || seenInBatch.has(hash);
+        seenInBatch.add(hash);
+        if(isDup){
+          wrappers[i].classList.add('dup');
+          const badge = document.createElement('div');
+          badge.className = 'dup-badge';
+          badge.textContent = '⚠ 疑似重複';
+          wrappers[i].appendChild(badge);
+        }
+      }catch(err){
+        console.error('雜湊計算失敗', err);
+      }
+    }
+  }
+
+  async function hashFile(file){
+    const buf = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   uploadBtn.addEventListener('click', async () => {
@@ -704,7 +777,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, artist, datetime, title, song, venue, city, equipment, exif, locationType, distance, seat, weather, link, tags,
+          url, hash: fileHashes.get(file) || null, category, artist, datetime, title, song, venue, city, equipment, exif, locationType, distance, seat, weather, link, tags,
           allowDownload: document.getElementById('f-allow-download').checked,
           createdAt: serverTimestamp()
         });
@@ -718,7 +791,9 @@
     }
     uploadProgress.textContent = `完成！已上傳 ${done} 張照片`;
     selectedFiles = [];
+    fileHashes = new Map();
     previewList.innerHTML = '';
+    exifStatusEl.textContent = '';
     fileInput.value = '';
     document.getElementById('f-title').value = '';
      document.getElementById('f-artist').value = '';
