@@ -38,6 +38,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <!-- ===== PWA：manifest + icons + theme color ===== -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -755,6 +756,15 @@
     color:var(--ink-dim); text-transform:uppercase; margin-bottom:6px;
   }
   .polaroid-position-control input[type="range"]{ width:100%; }
+  .polaroid-style-picker{ display:flex; gap:8px; justify-content:center; margin-bottom:16px; }
+  .polaroid-style-btn{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.05em;
+    padding:7px 16px; border:1px solid var(--line-strong); background:transparent;
+    color:var(--ink-dim); cursor:pointer; transition:background .15s,color .15s,border-color .15s;
+  }
+  .polaroid-style-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .polaroid-style-btn:hover{ border-color:var(--press); color:var(--press); }
+  .polaroid-style-btn.active:hover{ color:var(--paper); }
 </style>
 </head>
 <body>
@@ -1144,6 +1154,11 @@
   <div class="polaroid-modal-inner">
     <div class="lightbox-close" id="polaroidClose" style="top:12px; right:16px; color:var(--ink);">✕</div>
     <div class="polaroid-modal-title">IG 限動 9:16 拍立得圖卡</div>
+    <div class="polaroid-style-picker" id="polaroidStylePicker">
+      <button type="button" data-style="cream" class="polaroid-style-btn active">米白經典</button>
+      <button type="button" data-style="dark" class="polaroid-style-btn">深色質感</button>
+      <button type="button" data-style="film" class="polaroid-style-btn">復古底片</button>
+    </div>
     <img id="polaroidImg" class="polaroid-preview-img" src="" alt="拍立得預覽">
     <div class="polaroid-position-control" id="polaroidPositionControl">
       <label for="polaroidOffset">調整照片位置</label>
@@ -1547,27 +1562,54 @@
       positionControl.style.display = (Math.abs(imgAspect - (820 / 1030)) < 0.02) ? 'none' : '';
       offsetSlider.value = 50;
 
+      // ===== 拍立得款式設定：米白經典 / 深色質感 / 復古底片 =====
+      const POLAROID_STYLES = {
+        cream: { bg:'#f4f2ec', card:'#ffffff', title:'#15130f', meta:'#888888', accent:'#cc2036', sprockets:false },
+        dark:  { bg:'#171613', card:'#232019', title:'#f2efe6', meta:'#a39c8c', accent:'#ff5468', sprockets:false },
+        film:  { bg:'#0d0c0a', card:'#161512', title:'#f2efe6', meta:'#9c9284', accent:'#e8850f', sprockets:true }
+      };
+      let currentPolaroidStyle = 'cream';
+
+      function drawSprockets(y, color){
+        const holeW = 24, holeH = 16, gap = 22;
+        const count = Math.floor(1080 / (holeW + gap));
+        const rowW = count * (holeW + gap) - gap;
+        const startX = (1080 - rowW) / 2;
+        ctx.fillStyle = color;
+        for (let i = 0; i < count; i++){
+          const x = startX + i * (holeW + gap);
+          ctx.fillRect(x, y, holeW, holeH);
+        }
+      }
+
       function draw(offsetPercent){
+        const style = POLAROID_STYLES[currentPolaroidStyle] || POLAROID_STYLES.cream;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // 背景色
-        ctx.fillStyle = '#f4f2ec';
+        ctx.fillStyle = style.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 拍立得白框尺寸(再加長、照片區域加大,文字貼近底部)
+        // 拍立得卡框尺寸(再加長、照片區域加大,文字貼近底部)
         const cardW = 900;
         const cardH = 1560;
         const cardX = (1080 - cardW) / 2;
         const cardY = 200;
 
-        // 畫白框陰影與底色
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        // 底片款式：卡片上下加膠捲打孔裝飾
+        if (style.sprockets){
+          drawSprockets(cardY - 60, style.accent);
+          drawSprockets(cardY + cardH + 40, style.accent);
+        }
+
+        // 畫卡框陰影與底色
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
         ctx.shadowBlur = 30;
         ctx.shadowOffsetY = 15;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = style.card;
         ctx.fillRect(cardX, cardY, cardW, cardH);
         ctx.shadowColor = 'transparent'; // 重置陰影
 
-        // 畫相片區域 (改成長方形,4:5 直式比例,加大)
+        // 畫相片區域 (長方形,4:5 直式比例,加大)
         const photoW = 820;
         const photoH = 1200;
         const targetAspect = photoW / photoH;
@@ -1591,19 +1633,50 @@
 
         ctx.drawImage(image, sx, sy, sWidth, sHeight, photoX, photoY, photoW, photoH);
 
+        // 底片款式：相片外加一圈細框，更有底片感
+        if (style.sprockets){
+          ctx.strokeStyle = style.accent;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(photoX, photoY, photoW, photoH);
+        }
+
+        // 右下角網站二維碼（掃描可直接進入網站首頁）
+        try {
+          if (typeof QRious !== 'undefined'){
+            const qrSize = 120;
+            const qrPad = 10;
+            const qrBoxSize = qrSize + qrPad * 2;
+            const qrX = cardX + cardW - 40 - qrBoxSize;
+            const qrY = (cardY + cardH) - 40 - qrBoxSize;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(qrX, qrY, qrBoxSize, qrBoxSize);
+            ctx.strokeStyle = style.accent;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(qrX, qrY, qrBoxSize, qrBoxSize);
+            const qr = new QRious({
+              value: 'https://yician0830.github.io/mytourdiary/index.html',
+              size: qrSize,
+              level: 'M',
+              background: 'white',
+              foreground: '#15130f'
+            });
+            ctx.drawImage(qr.canvas, qrX + qrPad, qrY + qrPad, qrSize, qrSize);
+          }
+        } catch(qrErr){}
+
         // 寫文字：標題與地點/時間(貼近卡片底部)
         const cardBottom = cardY + cardH;
-        ctx.fillStyle = '#15130f';
+        ctx.fillStyle = style.title;
         ctx.font = 'bold 36px "Zen Maru Gothic", sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(title, photoX, cardBottom - 150);
 
-        ctx.fillStyle = '#888888';
+        ctx.fillStyle = style.meta;
         ctx.font = '24px "Fredoka", monospace';
         ctx.fillText(meta, photoX, cardBottom - 100);
 
         // 頁尾品牌 Mark
-        ctx.fillStyle = '#cc2036';
+        ctx.fillStyle = style.accent;
         ctx.font = 'bold 28px "Archivo Black", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('_CHEMERA_ DIARY', 540, cardBottom + 70);
@@ -1611,10 +1684,23 @@
         document.getElementById('polaroidImg').src = canvas.toDataURL('image/png');
       }
 
+      // 每次開啟都重置回「米白經典」款式，並同步按鈕選取狀態
+      currentPolaroidStyle = 'cream';
+      document.querySelectorAll('#polaroidStylePicker .polaroid-style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'cream'));
+
       draw(50);
       document.getElementById('polaroidModal').classList.add('open');
 
       offsetSlider.oninput = () => draw(offsetSlider.value);
+
+      // 款式切換按鈕
+      document.querySelectorAll('#polaroidStylePicker .polaroid-style-btn').forEach(btn => {
+        btn.onclick = () => {
+          currentPolaroidStyle = btn.dataset.style;
+          document.querySelectorAll('#polaroidStylePicker .polaroid-style-btn').forEach(b => b.classList.toggle('active', b === btn));
+          draw(offsetSlider.value);
+        };
+      });
 
       // 綁定「分享至 IG」按鈕事件
       const shareBtn = document.getElementById('polaroidDownloadBtn');
@@ -2422,10 +2508,12 @@ const grids = {
 if (coverPreview && all.length){
   const previewPool = all.filter(p => p.category !== 'fancam');
   const shuffled = [...previewPool].sort(() => Math.random() - 0.5);
-    const framesHTML = shuffled.slice(0, 7).map(p =>
+    const framesHTML = shuffled.map(p =>
         `<div class="frame flash ${FLASH_CLASS[p.category] || 'flash-stage'}"><img src="${escapeHTML(optimizeImg(p.url, 480, 700))}" loading="lazy" decoding="async"></div>`
       ).join('');
-  coverPreview.innerHTML = '<div class="cover-bottom-track">' + framesHTML + framesHTML + '</div>';
+  // 動畫秒數依張數等比例增減，維持每張照片移動速度一致（原本 7 張／28 秒 → 每張約 4 秒）
+  const marqueeDuration = Math.max(shuffled.length, 1) * 4;
+  coverPreview.innerHTML = '<div class="cover-bottom-track" style="animation-duration:' + marqueeDuration + 's">' + framesHTML + framesHTML + '</div>';
     }
 
        Object.entries(TOC_PREFIX).forEach(([cat, prefix]) => {
@@ -2817,7 +2905,7 @@ if (coverPreview && all.length){
   // 瀏覽器政策不允許帶聲音自動播放，所以先「靜音自動播放」，
   // 使用者只要點一下頁面任何地方，或按左下角音樂按鈕，就會自動解除靜音開始有聲音。
   (function(){
-    const MUSIC_VIDEO_ID = 'k1GY2D1IM80';
+    const MUSIC_PLAYLIST_ID = 'PLdsIeSEk1s60'; // 你的 YouTube 播放清單，之後在清單裡加新歌會自動被播到
     const btn = document.getElementById('musicToggleBtn');
     let ytPlayer = null;
     let apiReady = false;
@@ -2860,8 +2948,8 @@ if (coverPreview && all.length){
         height: '1',
         width: '1',
         playerVars: {
-          videoId: MUSIC_VIDEO_ID,
-          playlist: MUSIC_VIDEO_ID,
+          listType: 'playlist',
+          list: MUSIC_PLAYLIST_ID,
           loop: 1,
           autoplay: 1,
           mute: 1,
@@ -2873,7 +2961,11 @@ if (coverPreview && all.length){
         events: {
           onReady: function(e){
             apiReady = true;
-            try { e.target.mute(); e.target.playVideo(); } catch(err){}
+            try {
+              e.target.mute();
+              e.target.setShuffle(true); // 隨機播放清單裡的歌
+              e.target.playVideo();
+            } catch(err){}
             soundOn = false;
             updateBtnUI();
           },
