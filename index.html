@@ -920,13 +920,23 @@
           <button data-sort="session" class="active">依場次</button>
           <button data-sort="date">依日期</button>
         </div>
+        <!-- 新增清除篩選按鈕 -->
+        <button id="reset-filter-btn" style="display:none; flex-shrink:0;" class="tag-filter-btn">✕ 清除篩選</button>
+      </div>
+    </section>
+
+    <!-- ===== 室內外 + 場地篩選（同一列） ===== -->
+    <section id="location-filter-wrap" class="tag-filter-wrap reveal">
+      <div class="tag-filter-label">篩選 · 室內外／場地</div>
+      <div class="tag-filter filter-row-scroll">
         <div id="location-type-toggle" class="tag-filter" style="flex-wrap: nowrap;">
           <button data-loc="all" class="active">室內外：全部</button>
           <button data-loc="indoor">室內</button>
           <button data-loc="outdoor">室外</button>
         </div>
-        <!-- 新增清除篩選按鈕 -->
-        <button id="reset-filter-btn" style="display:none; flex-shrink:0;" class="tag-filter-btn">✕ 清除篩選</button>
+        <div id="venue-filter" class="tag-filter" style="flex-wrap: nowrap;">
+          <button data-venue="all" class="active">場地：全部</button>
+        </div>
       </div>
     </section>
 
@@ -1257,7 +1267,7 @@
         }
         if (f.dataset.seat) extraLines.push('座位：' + f.dataset.seat);
         document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
-        if (window.loadAndShowWeather) window.loadAndShowWeather(f.dataset.city, f.dataset.datetime, document.getElementById('lightboxWeather'), f.dataset.weather);
+        if (window.loadAndShowWeather) window.loadAndShowWeather(f.dataset.city, f.dataset.datetime, document.getElementById('lightboxWeather'), f.dataset.weather, f.dataset.locationType);
         if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(f.dataset.photoId, Number(f.dataset.likes || 0));
         lightbox.classList.add('open');
         if (window.updateLightboxNav) window.updateLightboxNav();
@@ -1806,7 +1816,7 @@ const grids = {
     }
     if (p.seat) extraLines.push('座位：' + p.seat);
     document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
-    loadAndShowWeather(p.city, p.datetime, document.getElementById('lightboxWeather'), p.weather);
+    loadAndShowWeather(p.city, p.datetime, document.getElementById('lightboxWeather'), p.weather, p.locationType);
     if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(p.id, p.likes || 0);
     window.updateLightboxNav();
     preloadAdjacentLightboxPhotos();
@@ -1916,7 +1926,7 @@ const grids = {
     const albumModalGrid = document.getElementById('albumModalGrid');
     const albumModal = document.getElementById('albumModal');
     albumModalTitle.textContent = group[0].title || '';
-    loadAndShowWeather(group[0].city, group[0].datetime, document.getElementById('albumModalWeather'), group[0].weather);
+    loadAndShowWeather(group[0].city, group[0].datetime, document.getElementById('albumModalWeather'), group[0].weather, group[0].locationType);
     albumModalGrid.innerHTML = group.map((p, i) =>
       `<img src="${escapeHTML(optimizeImg(p.url, 600))}" loading="lazy" decoding="async" data-photo-idx="${i}">`
     ).join('');
@@ -2064,10 +2074,15 @@ const grids = {
     }
 
     let weatherRequestSeq = 0;
-    async function loadAndShowWeather(city, datetimeStr, targetEl, manualOverride){
+    async function loadAndShowWeather(city, datetimeStr, targetEl, manualOverride, locationType){
       if (!targetEl) return;
       const myToken = ++weatherRequestSeq;
       targetEl.dataset.weatherToken = String(myToken);
+      // 室內場次不顯示天氣資訊（室內受天氣影響不大）
+      if (locationType === 'indoor'){
+        targetEl.innerHTML = '';
+        return;
+      }
       // 如果後台有手動填寫「自訂天氣」，直接顯示手動內容，不打 API 自動查詢
       if (manualOverride && manualOverride.trim()){
         targetEl.innerHTML = `<span class="weather-badge">🌡️ ${escapeHTML(manualOverride.trim())}</span>`;
@@ -2087,7 +2102,7 @@ const grids = {
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-exif="${escapeHTML(p.exif || '')}" data-location-type="${escapeHTML(p.locationType || '')}" data-distance="${escapeHTML(p.distance || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}" data-city="${escapeHTML(p.city || '')}" data-datetime="${escapeHTML(p.datetime || '')}" data-weather="${escapeHTML(p.weather || '')}">
+      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-exif="${escapeHTML(p.exif || '')}" data-location-type="${escapeHTML(p.locationType || '')}" data-distance="${escapeHTML(p.distance || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}" data-city="${escapeHTML(p.city || '')}" data-datetime="${escapeHTML(p.datetime || '')}" data-weather="${escapeHTML(p.weather || '')}" data-venue="${escapeHTML(p.venue || '')}">
         <img src="${escapeHTML(optimizeImg(p.url, 800))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="like-badge"><span class="like-heart">♥</span> ${p.likes || 0}</div>
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
@@ -2431,6 +2446,7 @@ if (coverPreview && all.length){
     renderTourMap(all);
     renderTagFilter(all);
     renderArtistFilter(all);
+    renderVenueFilter(all);
     applyFilters();
     updateColophonStats(all);
     updateStatsBar(all);
@@ -2624,6 +2640,35 @@ if (coverPreview && all.length){
     }
   }
 
+  // ===== 場地篩選（跟室內外同一排，各自獨立、可同時套用）=====
+  let currentVenueFilter = 'all';
+  const venueFilterEl = document.getElementById('venue-filter');
+
+  function renderVenueFilter(all){
+    const venueSet = new Set();
+    all.forEach(p => { if (p.venue) venueSet.add(p.venue); });
+
+    if (!venueSet.size){
+      venueFilterEl.innerHTML = '<button data-venue="all" class="active">場地：全部</button>';
+      return;
+    }
+    const venues = Array.from(venueSet).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    venueFilterEl.innerHTML = '<button data-venue="all" class="' + (currentVenueFilter === 'all' ? 'active' : '') + '">場地：全部</button>' +
+      venues.map(v => `<button data-venue="${escapeHTML(v)}" class="${currentVenueFilter === v ? 'active' : ''}">${escapeHTML(v)}</button>`).join('');
+
+    if (!venueFilterEl.dataset.bound){
+      venueFilterEl.dataset.bound = '1';
+      venueFilterEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        currentVenueFilter = btn.dataset.venue;
+        venueFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+      });
+    }
+  }
+
   let currentSearchQuery = '';
   let currentSearchQueryDisplay = '';
 
@@ -2638,14 +2683,15 @@ if (coverPreview && all.length){
     const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
     const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
     const locOK = currentLocationTypeFilter === 'all' || (p.locationType || '') === currentLocationTypeFilter;
-    return tagOK && artistOK && locOK && searchMatches(p);
+    const venueOK = currentVenueFilter === 'all' || (p.venue || '') === currentVenueFilter;
+    return tagOK && artistOK && locOK && venueOK && searchMatches(p);
   }
 
   // ===== 搜尋結果統計：依「照片 / 場次 / 藝人 / 直拍」分別列出符合目前搜尋(與標籤/藝人篩選)條件的筆數 =====
   function updateSearchStats(){
     const wrap = document.getElementById('search-stats-wrap');
     if (!wrap) return;
-    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all' || currentLocationTypeFilter !== 'all';
+    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all' || currentLocationTypeFilter !== 'all' || currentVenueFilter !== 'all';
     if (!filterActive){
       wrap.style.display = 'none';
       return;
@@ -2702,12 +2748,13 @@ if (coverPreview && all.length){
       const tagOK = currentTagFilter === 'all' || tags.includes(currentTagFilter);
       const artistOK = currentArtistFilter === 'all' || artist === currentArtistFilter;
       const locOK = currentLocationTypeFilter === 'all' || (el.dataset.locationType || '') === currentLocationTypeFilter;
+      const venueOK = currentVenueFilter === 'all' || (el.dataset.venue || '') === currentVenueFilter;
       const searchOK = !currentSearchQuery || searchText.includes(currentSearchQuery);
-      const match = tagOK && artistOK && locOK && searchOK;
+      const match = tagOK && artistOK && locOK && venueOK && searchOK;
       el.classList.toggle('tag-hidden', !match);
       if (match) visibleCount++;
     });
-    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || currentLocationTypeFilter !== 'all' || !!currentSearchQuery;
+    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || currentLocationTypeFilter !== 'all' || currentVenueFilter !== 'all' || !!currentSearchQuery;
     tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
     const resetBtn = document.getElementById('reset-filter-btn');
   if (resetBtn) {
@@ -2740,6 +2787,12 @@ if (coverPreview && all.length){
     currentLocationTypeFilter = 'all';
     document.querySelectorAll('#location-type-toggle button').forEach(b => {
       b.classList.toggle('active', b.dataset.loc === 'all');
+    });
+
+    // 2c. 重置場地篩選按鈕
+    currentVenueFilter = 'all';
+    document.querySelectorAll('#venue-filter button').forEach(b => {
+      b.classList.toggle('active', b.dataset.venue === 'all');
     });
 
     // 3. 重置標籤篩選按鈕與選單
