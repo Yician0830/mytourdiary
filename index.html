@@ -1157,7 +1157,8 @@
     <div class="polaroid-style-picker" id="polaroidStylePicker">
       <button type="button" data-style="cream" class="polaroid-style-btn active">米白經典</button>
       <button type="button" data-style="dark" class="polaroid-style-btn">深色質感</button>
-      <button type="button" data-style="film" class="polaroid-style-btn">復古底片</button>
+      <button type="button" data-style="pastel" class="polaroid-style-btn">粉彩少女</button>
+      <button type="button" data-style="ticket" class="polaroid-style-btn">票根風</button>
     </div>
     <img id="polaroidImg" class="polaroid-preview-img" src="" alt="拍立得預覽">
     <div class="polaroid-position-control" id="polaroidPositionControl">
@@ -1566,7 +1567,8 @@
       const POLAROID_STYLES = {
         cream: { bg:'#f4f2ec', card:'#ffffff', title:'#15130f', meta:'#888888', accent:'#cc2036', sprockets:false },
         dark:  { bg:'#171613', card:'#232019', title:'#f2efe6', meta:'#a39c8c', accent:'#ff5468', sprockets:false },
-        film:  { bg:'#0d0c0a', card:'#161512', title:'#f2efe6', meta:'#9c9284', accent:'#e8850f', sprockets:true }
+        pastel: { bg:'#fdeef3', card:'#ffffff', title:'#5b3a52', meta:'#b98ba8', accent:'#ff8fab', sprockets:false },
+        ticket: { bg:'#efe7d8', card:'#fffdf7', title:'#2b2620', meta:'#8c8270', accent:'#cc2036', sprockets:false, ticket:true }
       };
       let currentPolaroidStyle = 'cream';
 
@@ -1595,10 +1597,10 @@
         const cardX = (1080 - cardW) / 2;
         const cardY = 200;
 
-        // 底片款式：卡片上下加膠捲打孔裝飾
+        // 底片款式：卡片上下加膠捲打孔裝飾（底部留較多空間，避免壓到品牌字）
         if (style.sprockets){
           drawSprockets(cardY - 60, style.accent);
-          drawSprockets(cardY + cardH + 40, style.accent);
+          drawSprockets(cardY + cardH + 20, style.accent);
         }
 
         // 畫卡框陰影與底色
@@ -1640,6 +1642,48 @@
           ctx.strokeRect(photoX, photoY, photoW, photoH);
         }
 
+        // 票根風：在照片下方挖出左右對稱的圓形缺口＋虛線裁切線，模擬可撕開的票根
+        let ticketPerfY = null;
+        if (style.ticket){
+          ticketPerfY = photoY + photoH + 40;
+          const notchR = 22;
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath(); ctx.arc(cardX, ticketPerfY, notchR, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(cardX + cardW, ticketPerfY, notchR, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+
+          ctx.save();
+          ctx.strokeStyle = style.meta;
+          ctx.lineWidth = 3;
+          ctx.setLineDash([12, 10]);
+          ctx.beginPath();
+          ctx.moveTo(cardX + notchR + 14, ticketPerfY);
+          ctx.lineTo(cardX + cardW - notchR - 14, ticketPerfY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+
+          // 票號（右上角）
+          ctx.fillStyle = style.accent;
+          ctx.font = '20px "Fredoka", monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText('NO. ' + String(Math.floor(Math.random() * 900) + 100), cardX + cardW - 30, cardY + 44);
+
+          // 簡易條碼裝飾（票根下緣左側）
+          ctx.save();
+          ctx.fillStyle = style.title;
+          let barX = photoX;
+          const barY = (cardY + cardH) - 60;
+          const barH = 34;
+          while (barX < photoX + 300){
+            const barW = 2 + Math.floor(Math.random() * 4);
+            ctx.fillRect(barX, barY, barW, barH);
+            barX += barW + 3 + Math.floor(Math.random() * 3);
+          }
+          ctx.restore();
+        }
+
         // 右下角網站二維碼（掃描可直接進入網站首頁）
         try {
           if (typeof QRious !== 'undefined'){
@@ -1675,11 +1719,11 @@
         ctx.font = '24px "Fredoka", monospace';
         ctx.fillText(meta, photoX, cardBottom - 100);
 
-        // 頁尾品牌 Mark
+        // 頁尾品牌 Mark（底片款式底部打孔線較靠近卡片，品牌字往下多留一點距離避免重疊）
         ctx.fillStyle = style.accent;
         ctx.font = 'bold 28px "Archivo Black", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('_CHEMERA_ DIARY', 540, cardBottom + 70);
+        ctx.fillText('_CHEMERA_ DIARY', 540, cardBottom + (style.sprockets ? 115 : 70));
 
         document.getElementById('polaroidImg').src = canvas.toDataURL('image/png');
       }
