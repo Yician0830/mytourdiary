@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>_CHEMERA_後台</title>
 <meta name="robots" content="noindex, nofollow">
+<!-- ===== PWA：後台專屬 manifest，跟公開頁面的 App 圖示分開，加到主畫面時比較好分辨 ===== -->
+<link rel="manifest" href="admin-manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#171613">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CHEMERA後台">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fredoka:wght@300..700&family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
@@ -1346,6 +1354,16 @@
 
   function escapeHTML(str){
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+</script>
+
+<script>
+  // ===== PWA：註冊後台專屬 Service Worker，只是為了讓「加到主畫面」在 Android 上更容易被判定可安裝，
+  // 不做任何快取（避免離線時看到過期的照片列表或誤用到舊的登入狀態），純粹把每個請求原封不動轉發出去 =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('admin-service-worker.js').catch(() => {});
+    });
   }
 </script>
 
