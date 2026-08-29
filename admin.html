@@ -83,6 +83,9 @@
   .upload-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   @media (max-width:600px){ .upload-grid{ grid-template-columns:1fr; } }
   .upload-grid .field.full{ grid-column:1/-1; }
+  .exif-row{ grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media (max-width:600px){ .exif-row{ grid-template-columns:1fr; } }
+  .field.field-hidden{ visibility:hidden; }
 
   .drop{
     grid-column:1/-1; border:2px dashed var(--line-strong); padding:28px; text-align:center;
@@ -234,14 +237,23 @@
           <label>標題</label>
           <input type="text" id="f-title" placeholder="例如：主舞台 · 開場曲">
         </div>
-        <div class="field" id="f-song-field" style="display:none;">
-          <label>曲目名稱</label>
-          <input type="text" id="f-song" placeholder="例如：Vitamin G">
-        </div>
         <div class="field">
           <label>地點</label>
           <input type="text" id="f-venue" placeholder="例如：高雄巨蛋">
            </div>
+        <div class="field full" id="f-song-field" style="display:none;">
+          <label>曲目名稱</label>
+          <input type="text" id="f-song" placeholder="例如：Vitamin G">
+        </div>
+        <div class="field">
+          <label>藝人</label>
+          <input type="text" id="f-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
+        <div class="autocomplete-list" id="f-artist-list"></div>
+        </div>
+        <div class="field">
+          <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
+          <input type="text" id="f-tags" placeholder="例如：首爾, 簽售服裝, 安可舞台">
+        </div>
         <div class="field">
           <label>城市（用來畫「巡演足跡地圖」，選了地圖才會準）</label>
           <select id="f-city">
@@ -269,9 +281,19 @@
         <label>拍攝設備</label>
         <input type="text" id="f-equipment" placeholder="例如：Canon R6 + RF 100-500mm">
       </div>
-      <div class="field full">
-        <label>EXIF 攝影參數</label>
-        <input type="text" id="f-exif" placeholder="例如：f/2.8 · 1/500s · ISO 800 · 200mm">
+      <div class="exif-row">
+        <div class="field">
+          <label>焦距(mm)</label>
+          <input type="text" id="f-exif-focal" placeholder="例如：200">
+        </div>
+        <div class="field">
+          <label>ISO</label>
+          <input type="text" id="f-exif-iso" placeholder="例如：800">
+        </div>
+        <div class="field">
+          <label>f 光圈</label>
+          <input type="text" id="f-exif-aperture" placeholder="例如：2.8">
+        </div>
       </div>
       <div class="field">
         <label>室內／室外</label>
@@ -281,6 +303,14 @@
           <option value="outdoor">室外</option>
         </select>
       </div>
+      <div class="field" id="f-weather-field">
+        <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
+        <input type="text" id="f-weather" placeholder="例如：雷陣雨 · 22°C（若當天自動查到的天氣不準，可在這裡手動修正）">
+      </div>
+      <div class="field">
+        <label>座位</label>
+        <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
+          </div>
       <div class="field">
         <label>拍攝距離</label>
         <select id="f-distance">
@@ -290,26 +320,9 @@
           <option value="near">近</option>
         </select>
       </div>
-      <div class="field">
-        <label>座位</label>
-        <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
-          </div>
-      <div class="field full">
-        <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
-        <input type="text" id="f-weather" placeholder="例如：雷陣雨 · 22°C（若當天自動查到的天氣不準，可在這裡手動修正）">
-      </div>
-      <div class="field">
+      <div class="field full" id="f-link-field" style="display:none;">
         <label>影片連結(直拍才需要填)</label>
         <input type="text" id="f-link" placeholder="例如：https://youtube.com/...">
-        </div>
-        <div class="field full">
-          <label>藝人</label>
-          <input type="text" id="f-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
-        <div class="autocomplete-list" id="f-artist-list"></div>
-        </div>
-        <div class="field full">
-          <label>標籤(用逗號分隔，例如：首爾, 簽售服裝, 安可舞台)</label>
-          <input type="text" id="f-tags" placeholder="例如：首爾, 簽售服裝, 安可舞台">
         </div>
         <div class="field full" style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="f-allow-download" style="width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none;">
@@ -348,6 +361,9 @@
         <span class="count" id="batch-count">已選取 0 張</span>
         <button type="button" id="batch-allow-dl">批次開放下載</button>
         <button type="button" id="batch-deny-dl">批次設為不可下載</button>
+        <button type="button" id="batch-set-indoor">批次設為室內</button>
+        <button type="button" id="batch-set-outdoor">批次設為室外</button>
+        <button type="button" id="batch-edit-weather">批次編輯天氣</button>
         <button type="button" id="batch-add-tags">批次加標籤</button>
         <button type="button" class="btn-ghost" id="batch-clear">取消選取</button>
       </div>
@@ -360,6 +376,7 @@
 <div class="modal-overlay" id="edit-overlay">
   <div class="modal-card">
     <h2>編輯照片資訊</h2>
+    <div class="upload-grid">
     <div class="field">
       <label>分類</label>
       <select id="e-category">
@@ -379,13 +396,22 @@
       <label>標題</label>
       <input type="text" id="e-title">
     </div>
-    <div class="field" id="e-song-field" style="display:none;">
+    <div class="field">
+      <label>地點</label>
+      <input type="text" id="e-venue">
+    </div>
+    <div class="field full" id="e-song-field" style="display:none;">
       <label>曲目名稱</label>
       <input type="text" id="e-song">
     </div>
     <div class="field">
-      <label>地點</label>
-      <input type="text" id="e-venue">
+      <label>藝人</label>
+      <input type="text" id="e-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
+      <div class="autocomplete-list" id="e-artist-list"></div>
+    </div>
+    <div class="field">
+      <label>標籤(用逗號分隔)</label>
+      <input type="text" id="e-tags">
     </div>
     <div class="field">
       <label>城市</label>
@@ -414,9 +440,19 @@
       <label>拍攝設備</label>
       <input type="text" id="e-equipment">
     </div>
-    <div class="field">
-      <label>EXIF 攝影參數</label>
-      <input type="text" id="e-exif" placeholder="例如：f/2.8 · 1/500s · ISO 800 · 200mm">
+    <div class="exif-row">
+      <div class="field">
+        <label>焦距(mm)</label>
+        <input type="text" id="e-exif-focal" placeholder="例如：200">
+      </div>
+      <div class="field">
+        <label>ISO</label>
+        <input type="text" id="e-exif-iso" placeholder="例如：800">
+      </div>
+      <div class="field">
+        <label>f 光圈</label>
+        <input type="text" id="e-exif-aperture" placeholder="例如：2.8">
+      </div>
     </div>
     <div class="field">
       <label>室內／室外</label>
@@ -426,6 +462,14 @@
         <option value="outdoor">室外</option>
       </select>
     </div>
+    <div class="field" id="e-weather-field">
+      <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
+      <input type="text" id="e-weather" placeholder="例如：雷陣雨 · 22°C">
+    </div>
+    <div class="field">
+      <label>座位</label>
+      <input type="text" id="e-seat">
+       </div>
     <div class="field">
       <label>拍攝距離</label>
       <select id="e-distance">
@@ -435,30 +479,14 @@
         <option value="near">近</option>
       </select>
     </div>
-    <div class="field">
-      <label>座位</label>
-      <input type="text" id="e-seat">
-       </div>
-    <div class="field full">
-      <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
-      <input type="text" id="e-weather" placeholder="例如：雷陣雨 · 22°C">
-    </div>
-    <div class="field">
+    <div class="field full" id="e-link-field" style="display:none;">
       <label>影片連結</label>
       <input type="text" id="e-link">
     </div>
-    <div class="field">
-      <label>藝人</label>
-      <input type="text" id="e-artist" list="artist-datalist" placeholder="輸入或從清單選擇藝人" autocomplete="off">
-      <div class="autocomplete-list" id="e-artist-list"></div>
-    </div>
-    <div class="field">
-      <label>標籤(用逗號分隔)</label>
-      <input type="text" id="e-tags">
-    </div>
-    <div class="field" style="display:flex; align-items:center; gap:8px;">
+    <div class="field full" style="display:flex; align-items:center; gap:8px;">
       <input type="checkbox" id="e-allow-download" style="width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none;">
       <label for="e-allow-download" style="margin:0; text-transform:none; font-size:13px; color:var(--ink); cursor:pointer;">開放下載（原尺寸／1920px／IG 尺寸）</label>
+    </div>
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="edit-cancel">取消</button>
@@ -549,12 +577,42 @@
   fCategoryEl.addEventListener('change', toggleFSongField);
   toggleFSongField();
 
+  // ===== 影片連結欄位：只有分類選「直拍精選」時才顯示 =====
+  const fLinkField = document.getElementById('f-link-field');
+  function toggleFLinkField(){
+    fLinkField.style.display = fCategoryEl.value === 'fancam' ? '' : 'none';
+  }
+  fCategoryEl.addEventListener('change', toggleFLinkField);
+  toggleFLinkField();
+
+  // ===== 天氣欄位：只有室內／室外選「室外」時才顯示（排版位置不變，只隱藏內容）=====
+  const fLocationTypeEl = document.getElementById('f-location-type');
+  const fWeatherField = document.getElementById('f-weather-field');
+  function toggleFWeatherField(){
+    fWeatherField.classList.toggle('field-hidden', fLocationTypeEl.value !== 'outdoor');
+  }
+  fLocationTypeEl.addEventListener('change', toggleFWeatherField);
+  toggleFWeatherField();
+
   const eCategoryField = document.getElementById('e-category');
   const eSongField = document.getElementById('e-song-field');
   function toggleESongField(){
     eSongField.style.display = eCategoryField.value === 'fancam' ? '' : 'none';
   }
   eCategoryField.addEventListener('change', toggleESongField);
+
+  const eLinkField = document.getElementById('e-link-field');
+  function toggleELinkField(){
+    eLinkField.style.display = eCategoryField.value === 'fancam' ? '' : 'none';
+  }
+  eCategoryField.addEventListener('change', toggleELinkField);
+
+  const eWeatherField = document.getElementById('e-weather-field');
+  const eLocationTypeSelect = document.getElementById('e-location-type');
+  function toggleEWeatherField(){
+    eWeatherField.classList.toggle('field-hidden', eLocationTypeSelect.value !== 'outdoor');
+  }
+  eLocationTypeSelect.addEventListener('change', toggleEWeatherField);
 
   dropEl.addEventListener('click', () => fileInput.click());
   dropEl.addEventListener('dragover', (e) => { e.preventDefault(); dropEl.classList.add('drag'); });
@@ -585,7 +643,10 @@
     const venue = document.getElementById('f-venue').value.trim();
     const city = document.getElementById('f-city').value.trim();
     const equipment = document.getElementById('f-equipment').value.trim();
-    const exif = document.getElementById('f-exif').value.trim();
+    const exifFocal = document.getElementById('f-exif-focal').value.trim();
+    const exifIso = document.getElementById('f-exif-iso').value.trim();
+    const exifAperture = document.getElementById('f-exif-aperture').value.trim();
+    const exif = buildExifString(exifFocal, exifIso, exifAperture);
     const locationType = document.getElementById('f-location-type').value;
     const distance = document.getElementById('f-distance').value;
     const seat = document.getElementById('f-seat').value.trim();
@@ -624,7 +685,9 @@
      document.getElementById('f-venue').value = '';
      document.getElementById('f-city').value = '';
     document.getElementById('f-equipment').value = '';
-    document.getElementById('f-exif').value = '';
+    document.getElementById('f-exif-focal').value = '';
+    document.getElementById('f-exif-iso').value = '';
+    document.getElementById('f-exif-aperture').value = '';
     document.getElementById('f-location-type').value = '';
     document.getElementById('f-distance').value = '';
     document.getElementById('f-seat').value = '';
@@ -635,6 +698,27 @@
     document.getElementById('f-allow-download').checked = false;
     uploadBtn.disabled = false;
   });
+
+  // ===== EXIF：把「焦距／ISO／光圈」三個獨立欄位組合成一個字串存進資料庫 =====
+  function buildExifString(focal, iso, aperture){
+    const parts = [];
+    if(aperture) parts.push('f/' + aperture);
+    if(iso) parts.push('ISO ' + iso);
+    if(focal) parts.push(focal + 'mm');
+    return parts.join(' · ');
+  }
+  // 把存好的 exif 字串盡量拆回三個欄位（給編輯彈窗用；舊資料格式不同時，能抓到多少算多少）
+  function parseExifString(str){
+    str = str || '';
+    const apertureMatch = str.match(/f\/\s*(\d+(?:\.\d+)?)/i);
+    const isoMatch = str.match(/ISO\s*(\d+)/i);
+    const focalMatch = str.match(/(\d+(?:\.\d+)?)\s*mm/i);
+    return {
+      aperture: apertureMatch ? apertureMatch[1] : '',
+      iso: isoMatch ? isoMatch[1] : '',
+      focal: focalMatch ? focalMatch[1] : ''
+    };
+  }
 
   // 把「首爾, #簽售服裝，安可舞台」這種輸入字串轉成乾淨的標籤陣列（去掉多餘的#、空白、重複、支援中英文逗號）
   function parseTagsInput(raw){
@@ -959,6 +1043,27 @@
     e.target.disabled = false;
   });
 
+  document.getElementById('batch-set-indoor').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { locationType: 'indoor' }));
+    e.target.disabled = false;
+  });
+
+  document.getElementById('batch-set-outdoor').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { locationType: 'outdoor' }));
+    e.target.disabled = false;
+  });
+
+  document.getElementById('batch-edit-weather').addEventListener('click', async (e) => {
+    const raw = prompt('要幫選取的 ' + selectedIds.size + ' 張照片設定什麼天氣？(留空並按確定可清空天氣)');
+    if(raw === null) return;
+    const weather = raw.trim();
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { weather }));
+    e.target.disabled = false;
+  });
+
   document.getElementById('batch-add-tags').addEventListener('click', async (e) => {
     const raw = prompt('要幫選取的 ' + selectedIds.size + ' 張照片加上哪些標籤？(用逗號分隔)');
     if(raw === null) return;
@@ -992,7 +1097,9 @@
   const eVenue = document.getElementById('e-venue');
   const eCity = document.getElementById('e-city');
   const eEquipment = document.getElementById('e-equipment');
-  const eExif = document.getElementById('e-exif');
+  const eExifFocal = document.getElementById('e-exif-focal');
+  const eExifIso = document.getElementById('e-exif-iso');
+  const eExifAperture = document.getElementById('e-exif-aperture');
   const eLocationType = document.getElementById('e-location-type');
   const eDistance = document.getElementById('e-distance');
   const eSeat = document.getElementById('e-seat');
@@ -1016,9 +1123,14 @@
     eVenue.value = p.venue || '';
     eCity.value = p.city || '';
     toggleESongField();
+    toggleELinkField();
     eEquipment.value = p.equipment || '';
-    eExif.value = p.exif || '';
+    const exifParts = parseExifString(p.exif || '');
+    eExifFocal.value = exifParts.focal;
+    eExifIso.value = exifParts.iso;
+    eExifAperture.value = exifParts.aperture;
     eLocationType.value = p.locationType || '';
+    toggleEWeatherField();
     eDistance.value = p.distance || '';
     eSeat.value = p.seat || '';
     eWeather.value = p.weather || '';
@@ -1050,7 +1162,7 @@
         venue: eVenue.value.trim(),
         city: eCity.value.trim(),
          equipment: eEquipment.value.trim(),
-        exif: eExif.value.trim(),
+        exif: buildExifString(eExifFocal.value.trim(), eExifIso.value.trim(), eExifAperture.value.trim()),
         locationType: eLocationType.value,
         distance: eDistance.value,
         seat: eSeat.value.trim(),

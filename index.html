@@ -472,6 +472,7 @@
     color:var(--ink-faint); text-transform:uppercase; margin-bottom:14px;
   }
   .tag-filter{ display:flex; flex-wrap:wrap; gap:10px; }
+  .filter-group-divider{ width:1px; align-self:stretch; min-height:24px; background:var(--line); flex-shrink:0; }
   .tag-filter button{
     font-family:var(--mono); font-size:12px; letter-spacing:0.03em;
     background:transparent; border:1px solid var(--line-strong); color:var(--ink-dim);
@@ -912,7 +913,7 @@
       </div>
     </section>
 
-    <!-- ===== 排序切換與重置 ===== -->
+    <!-- ===== 排序切換 + 室內外篩選（同一列） ===== -->
     <section id="sort-toggle-wrap" class="tag-filter-wrap reveal">
       <div class="tag-filter-label">瀏覽方式 · View by</div>
       <div class="tag-filter filter-row-scroll">
@@ -920,23 +921,14 @@
           <button data-sort="session" class="active">依場次</button>
           <button data-sort="date">依日期</button>
         </div>
-        <!-- 新增清除篩選按鈕 -->
-        <button id="reset-filter-btn" style="display:none; flex-shrink:0;" class="tag-filter-btn">✕ 清除篩選</button>
-      </div>
-    </section>
-
-    <!-- ===== 室內外 + 場地篩選（同一列） ===== -->
-    <section id="location-filter-wrap" class="tag-filter-wrap reveal">
-      <div class="tag-filter-label">篩選 · 室內外／場地</div>
-      <div class="tag-filter filter-row-scroll">
+        <div class="filter-group-divider" aria-hidden="true"></div>
         <div id="location-type-toggle" class="tag-filter" style="flex-wrap: nowrap;">
           <button data-loc="all" class="active">室內外：全部</button>
           <button data-loc="indoor">室內</button>
           <button data-loc="outdoor">室外</button>
         </div>
-        <div id="venue-filter" class="tag-filter" style="flex-wrap: nowrap;">
-          <button data-venue="all" class="active">場地：全部</button>
-        </div>
+        <!-- 新增清除篩選按鈕 -->
+        <button id="reset-filter-btn" style="display:none; flex-shrink:0;" class="tag-filter-btn">✕ 清除篩選</button>
       </div>
     </section>
 
@@ -2446,7 +2438,6 @@ if (coverPreview && all.length){
     renderTourMap(all);
     renderTagFilter(all);
     renderArtistFilter(all);
-    renderVenueFilter(all);
     applyFilters();
     updateColophonStats(all);
     updateStatsBar(all);
@@ -2640,35 +2631,6 @@ if (coverPreview && all.length){
     }
   }
 
-  // ===== 場地篩選（跟室內外同一排，各自獨立、可同時套用）=====
-  let currentVenueFilter = 'all';
-  const venueFilterEl = document.getElementById('venue-filter');
-
-  function renderVenueFilter(all){
-    const venueSet = new Set();
-    all.forEach(p => { if (p.venue) venueSet.add(p.venue); });
-
-    if (!venueSet.size){
-      venueFilterEl.innerHTML = '<button data-venue="all" class="active">場地：全部</button>';
-      return;
-    }
-    const venues = Array.from(venueSet).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-    venueFilterEl.innerHTML = '<button data-venue="all" class="' + (currentVenueFilter === 'all' ? 'active' : '') + '">場地：全部</button>' +
-      venues.map(v => `<button data-venue="${escapeHTML(v)}" class="${currentVenueFilter === v ? 'active' : ''}">${escapeHTML(v)}</button>`).join('');
-
-    if (!venueFilterEl.dataset.bound){
-      venueFilterEl.dataset.bound = '1';
-      venueFilterEl.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        currentVenueFilter = btn.dataset.venue;
-        venueFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        applyFilters();
-      });
-    }
-  }
-
   let currentSearchQuery = '';
   let currentSearchQueryDisplay = '';
 
@@ -2683,15 +2645,14 @@ if (coverPreview && all.length){
     const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
     const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
     const locOK = currentLocationTypeFilter === 'all' || (p.locationType || '') === currentLocationTypeFilter;
-    const venueOK = currentVenueFilter === 'all' || (p.venue || '') === currentVenueFilter;
-    return tagOK && artistOK && locOK && venueOK && searchMatches(p);
+    return tagOK && artistOK && locOK && searchMatches(p);
   }
 
   // ===== 搜尋結果統計：依「照片 / 場次 / 藝人 / 直拍」分別列出符合目前搜尋(與標籤/藝人篩選)條件的筆數 =====
   function updateSearchStats(){
     const wrap = document.getElementById('search-stats-wrap');
     if (!wrap) return;
-    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all' || currentLocationTypeFilter !== 'all' || currentVenueFilter !== 'all';
+    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all' || currentLocationTypeFilter !== 'all';
     if (!filterActive){
       wrap.style.display = 'none';
       return;
@@ -2748,13 +2709,12 @@ if (coverPreview && all.length){
       const tagOK = currentTagFilter === 'all' || tags.includes(currentTagFilter);
       const artistOK = currentArtistFilter === 'all' || artist === currentArtistFilter;
       const locOK = currentLocationTypeFilter === 'all' || (el.dataset.locationType || '') === currentLocationTypeFilter;
-      const venueOK = currentVenueFilter === 'all' || (el.dataset.venue || '') === currentVenueFilter;
       const searchOK = !currentSearchQuery || searchText.includes(currentSearchQuery);
-      const match = tagOK && artistOK && locOK && venueOK && searchOK;
+      const match = tagOK && artistOK && locOK && searchOK;
       el.classList.toggle('tag-hidden', !match);
       if (match) visibleCount++;
     });
-    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || currentLocationTypeFilter !== 'all' || currentVenueFilter !== 'all' || !!currentSearchQuery;
+    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || currentLocationTypeFilter !== 'all' || !!currentSearchQuery;
     tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
     const resetBtn = document.getElementById('reset-filter-btn');
   if (resetBtn) {
@@ -2787,12 +2747,6 @@ if (coverPreview && all.length){
     currentLocationTypeFilter = 'all';
     document.querySelectorAll('#location-type-toggle button').forEach(b => {
       b.classList.toggle('active', b.dataset.loc === 'all');
-    });
-
-    // 2c. 重置場地篩選按鈕
-    currentVenueFilter = 'all';
-    document.querySelectorAll('#venue-filter button').forEach(b => {
-      b.classList.toggle('active', b.dataset.venue === 'all');
     });
 
     // 3. 重置標籤篩選按鈕與選單
