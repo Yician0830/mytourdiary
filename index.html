@@ -614,6 +614,27 @@
   .lightbox.fs-active .lightbox-inner{ max-width:min(92vw, 1100px); }
   .lightbox-cap{ display:flex; justify-content:space-between; margin-top:18px; font-family:var(--mono); font-size:11px; color:#cfc9ba; }
   .lightbox-extra{ margin-top:10px; font-family:var(--mono); font-size:11px; color:#9c9284; line-height:1.8; }
+
+  /* ===== 天氣資訊小標籤 ===== */
+  .weather-badge{
+    display:inline-block; margin-top:8px; padding:4px 12px;
+    border:1px solid rgba(244,242,236,0.25); border-radius:999px;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.03em;
+    color:#f4f2ec; background:rgba(244,242,236,0.06);
+  }
+  .weather-badge.weather-loading{ opacity:0.55; }
+  .weather-badge.weather-empty{ opacity:0.4; }
+  .album-modal-weather{ text-align:center; margin:-8px 0 16px; }
+
+  /* ===== 瀏覽方式/室內外篩選那一排：手機可以換行，平板/電腦寬螢幕維持單行、超出用滑動 ===== */
+  .filter-row-scroll{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  }
+  @media (min-width:821px){
+    .filter-row-scroll{
+      flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px;
+    }
+  }
   .lightbox-close{ position:absolute; top:28px; right:36px; font-family:var(--mono); font-size:11px; color:#cfc9ba; cursor:pointer; letter-spacing:0.06em; }
   .lightbox-close:hover{ color:var(--press); }
 
@@ -894,13 +915,18 @@
     <!-- ===== 排序切換與重置 ===== -->
     <section id="sort-toggle-wrap" class="tag-filter-wrap reveal">
       <div class="tag-filter-label">瀏覽方式 · View by</div>
-      <div class="tag-filter" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <div id="sort-toggle" class="tag-filter">
+      <div class="tag-filter filter-row-scroll">
+        <div id="sort-toggle" class="tag-filter" style="flex-wrap: nowrap;">
           <button data-sort="session" class="active">依場次</button>
           <button data-sort="date">依日期</button>
         </div>
+        <div id="location-type-toggle" class="tag-filter" style="flex-wrap: nowrap;">
+          <button data-loc="all" class="active">室內外：全部</button>
+          <button data-loc="indoor">室內</button>
+          <button data-loc="outdoor">室外</button>
+        </div>
         <!-- 新增清除篩選按鈕 -->
-        <button id="reset-filter-btn" style="display:none;" class="tag-filter-btn">✕ 清除篩選</button>
+        <button id="reset-filter-btn" style="display:none; flex-shrink:0;" class="tag-filter-btn">✕ 清除篩選</button>
       </div>
     </section>
 
@@ -1076,6 +1102,7 @@
     <div class="lightbox-frame" id="lightboxFrame"></div>
     <div class="lightbox-cap"><span id="lightboxTitle"></span><span id="lightboxMeta"></span></div>
       <div class="lightbox-extra" id="lightboxExtra"></div>
+      <div class="album-modal-weather" id="lightboxWeather"></div>
   </div>
 </div>
 
@@ -1091,7 +1118,8 @@
     </div>
   </div>
   <div class="lightbox-inner" style="max-width:900px;">
-    <h3 id="albumModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:16px; text-align:center; font-size:22px;"></h3>
+    <h3 id="albumModalTitle" style="font-family:var(--editorial); font-style:normal; color:#f4f2ec; margin-bottom:8px; text-align:center; font-size:22px;"></h3>
+    <div class="album-modal-weather" id="albumModalWeather"></div>
     <div class="album-modal-grid" id="albumModalGrid"></div>
   </div>
 </div>
@@ -1229,6 +1257,7 @@
         }
         if (f.dataset.seat) extraLines.push('座位：' + f.dataset.seat);
         document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+        if (window.loadAndShowWeather) window.loadAndShowWeather(f.dataset.city, f.dataset.datetime, document.getElementById('lightboxWeather'), f.dataset.weather);
         if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(f.dataset.photoId, Number(f.dataset.likes || 0));
         lightbox.classList.add('open');
         if (window.updateLightboxNav) window.updateLightboxNav();
@@ -1777,6 +1806,7 @@ const grids = {
     }
     if (p.seat) extraLines.push('座位：' + p.seat);
     document.getElementById('lightboxExtra').innerHTML = extraLines.join('<br>');
+    loadAndShowWeather(p.city, p.datetime, document.getElementById('lightboxWeather'), p.weather);
     if (window.updateLightboxLikeUI) window.updateLightboxLikeUI(p.id, p.likes || 0);
     window.updateLightboxNav();
     preloadAdjacentLightboxPhotos();
@@ -1886,6 +1916,7 @@ const grids = {
     const albumModalGrid = document.getElementById('albumModalGrid');
     const albumModal = document.getElementById('albumModal');
     albumModalTitle.textContent = group[0].title || '';
+    loadAndShowWeather(group[0].city, group[0].datetime, document.getElementById('albumModalWeather'), group[0].weather);
     albumModalGrid.innerHTML = group.map((p, i) =>
       `<img src="${escapeHTML(optimizeImg(p.url, 600))}" loading="lazy" decoding="async" data-photo-idx="${i}">`
     ).join('');
@@ -1935,12 +1966,128 @@ const grids = {
       </div>`;
   }
 
+    // ===== 天氣資訊：依場次城市 + 日期自動查詢歷史天氣（Open-Meteo，免金鑰、免費） =====
+    const WEATHER_CODE_MAP = {
+      0: ['☀️','晴朗'], 1: ['🌤️','晴時多雲'], 2: ['⛅','多雲'], 3: ['☁️','陰天'],
+      45: ['🌫️','有霧'], 48: ['🌫️','霧淞'],
+      51: ['🌦️','毛毛雨'], 53: ['🌦️','毛毛雨'], 55: ['🌦️','毛毛雨'],
+      56: ['🌦️','凍雨'], 57: ['🌦️','凍雨'],
+      61: ['🌧️','小雨'], 63: ['🌧️','中雨'], 65: ['🌧️','大雨'],
+      66: ['🌧️','凍雨'], 67: ['🌧️','凍雨'],
+      71: ['🌨️','小雪'], 73: ['🌨️','中雪'], 75: ['❄️','大雪'], 77: ['🌨️','霰'],
+      80: ['🌦️','短暫陣雨'], 81: ['🌧️','陣雨'], 82: ['⛈️','強陣雨'],
+      85: ['🌨️','陣雪'], 86: ['🌨️','強陣雪'],
+      95: ['⛈️','雷雨'], 96: ['⛈️','雷雨(冰雹)'], 99: ['⛈️','強雷雨(冰雹)']
+    };
+    const WEATHER_CITY_LATLON = {
+      '台北':[25.033,121.565], '臺北':[25.033,121.565],
+      '新北':[25.012,121.465], '桃園':[24.994,121.301], '新竹':[24.804,120.968],
+      '苗栗':[24.560,120.821], '台中':[24.147,120.674], '臺中':[24.147,120.674],
+      '彰化':[24.075,120.544], '南投':[23.960,120.671], '雲林':[23.709,120.431],
+      '嘉義':[23.480,120.449], '台南':[22.999,120.227], '臺南':[22.999,120.227],
+      '高雄':[22.627,120.301], '屏東':[22.552,120.549], '宜蘭':[24.702,121.738],
+      '花蓮':[23.991,121.611], '台東':[22.758,121.144], '臺東':[22.758,121.144],
+      '基隆':[25.128,121.741], '澎湖':[23.565,119.579], '金門':[24.436,118.317],
+      '香港':[22.319,114.169], '澳門':[22.199,113.545],
+      '東京':[35.682,139.759], '大阪':[34.693,135.502], '名古屋':[35.181,136.906],
+      '首爾':[37.566,126.978], '釜山':[35.180,129.075],
+      '上海':[31.230,121.474], '北京':[39.904,116.407], '廣州':[23.129,113.265], '深圳':[22.543,114.058],
+      '新加坡':[1.352,103.820], '曼谷':[13.756,100.502], '吉隆坡':[3.139,101.687],
+      '洛杉磯':[34.052,-118.244], '紐約':[40.713,-74.006]
+    };
+
+    async function resolveCityCoords(city){
+      if (!city) return null;
+      const trimmed = city.trim();
+      if (!trimmed) return null;
+      for (const key of Object.keys(WEATHER_CITY_LATLON)){
+        if (trimmed.includes(key)) return WEATHER_CITY_LATLON[key];
+      }
+      const cacheKey = 'weather_coords_' + trimmed;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch(e){}
+      try {
+        const res = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(trimmed) + '&count=1&language=zh');
+        const data = await res.json();
+        if (data && data.results && data.results.length){
+          const coords = [data.results[0].latitude, data.results[0].longitude];
+          try { localStorage.setItem(cacheKey, JSON.stringify(coords)); } catch(e){}
+          return coords;
+        }
+      } catch(e){}
+      return null;
+    }
+
+    function extractDateForWeather(datetimeStr){
+      if (!datetimeStr) return null;
+      const m = String(datetimeStr).match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+      if (!m) return null;
+      const yyyy = m[1], mm = m[2].padStart(2,'0'), dd = m[3].padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function fetchWeatherForCityDate(city, dateStr){
+      if (!city || !dateStr) return null;
+      // 未來日期（尚未發生的場次）沒有歷史天氣資料可查
+      if (dateStr > new Date().toISOString().slice(0,10)) return null;
+      const cacheKey = 'weather_' + city.trim() + '_' + dateStr;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch(e){}
+      const coords = await resolveCityCoords(city);
+      if (!coords) return null;
+      const [lat, lon] = coords;
+      try {
+        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateStr}&end_date=${dateStr}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTaipei`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.daily && data.daily.weathercode && data.daily.weathercode.length && data.daily.weathercode[0] !== null){
+          const result = {
+            code: data.daily.weathercode[0],
+            tmax: Math.round(data.daily.temperature_2m_max[0]),
+            tmin: Math.round(data.daily.temperature_2m_min[0])
+          };
+          try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch(e){}
+          return result;
+        }
+      } catch(e){}
+      return null;
+    }
+
+    function renderWeatherBadgeHTML(weather){
+      if (!weather) return '';
+      const info = WEATHER_CODE_MAP[weather.code] || ['🌡️','天氣'];
+      return `<span class="weather-badge">${info[0]} ${info[1]}</span>`;
+    }
+
+    let weatherRequestSeq = 0;
+    async function loadAndShowWeather(city, datetimeStr, targetEl, manualOverride){
+      if (!targetEl) return;
+      const myToken = ++weatherRequestSeq;
+      targetEl.dataset.weatherToken = String(myToken);
+      // 如果後台有手動填寫「自訂天氣」，直接顯示手動內容，不打 API 自動查詢
+      if (manualOverride && manualOverride.trim()){
+        targetEl.innerHTML = `<span class="weather-badge">🌡️ ${escapeHTML(manualOverride.trim())}</span>`;
+        return;
+      }
+      const dateStr = extractDateForWeather(datetimeStr);
+      if (!city || !dateStr){ targetEl.innerHTML = ''; return; }
+      targetEl.innerHTML = `<span class="weather-badge weather-loading">🌡️ 查詢天氣中…</span>`;
+      const weather = await fetchWeatherForCityDate(city, dateStr);
+      if (targetEl.dataset.weatherToken !== String(myToken)) return; // 使用者已經切換到別的照片/場次
+      targetEl.innerHTML = weather ? renderWeatherBadgeHTML(weather) : '';
+    }
+    window.loadAndShowWeather = loadAndShowWeather;
+
     function cellHTML(p){
     const flashClass = FLASH_CLASS[p.category] || 'flash-stage';
     const hasCaption = p.title || p.venue;
     const tagsAttr = escapeHTML((p.tags || []).join(','));
     return `
-      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-exif="${escapeHTML(p.exif || '')}" data-location-type="${escapeHTML(p.locationType || '')}" data-distance="${escapeHTML(p.distance || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}">
+      <div class="cell flash ${flashClass}" data-photo-id="${escapeHTML(p.id || '')}" data-likes="${p.likes || 0}" data-equipment="${escapeHTML(p.equipment || '')}" data-exif="${escapeHTML(p.exif || '')}" data-location-type="${escapeHTML(p.locationType || '')}" data-distance="${escapeHTML(p.distance || '')}" data-seat="${escapeHTML(p.seat || '')}" data-tags="${tagsAttr}" data-artist="${escapeHTML(p.artist || '')}" data-full-url="${escapeHTML(p.url || '')}" data-city="${escapeHTML(p.city || '')}" data-datetime="${escapeHTML(p.datetime || '')}" data-weather="${escapeHTML(p.weather || '')}">
         <img src="${escapeHTML(optimizeImg(p.url, 800))}" loading="lazy" decoding="async" alt="${escapeHTML(p.title || '')}">
         <div class="like-badge"><span class="like-heart">♥</span> ${p.likes || 0}</div>
         ${p.datetime ? `<div class="stamp">${escapeHTML(p.datetime)}</div>` : ''}
@@ -2410,6 +2557,7 @@ if (coverPreview && all.length){
 
   // ===== 標籤篩選 =====
   let currentTagFilter = 'all';
+  let currentLocationTypeFilter = 'all';
   const tagFilterWrap = document.getElementById('tag-filter-wrap');
   const tagFilterEl = document.getElementById('tag-filter');
   const tagEmptyNote = document.getElementById('tag-empty-note');
@@ -2489,14 +2637,15 @@ if (coverPreview && all.length){
   function photoMatchesFilters(p){
     const tagOK = currentTagFilter === 'all' || (p.tags || []).includes(currentTagFilter);
     const artistOK = currentArtistFilter === 'all' || (p.artist || '') === currentArtistFilter;
-    return tagOK && artistOK && searchMatches(p);
+    const locOK = currentLocationTypeFilter === 'all' || (p.locationType || '') === currentLocationTypeFilter;
+    return tagOK && artistOK && locOK && searchMatches(p);
   }
 
   // ===== 搜尋結果統計：依「照片 / 場次 / 藝人 / 直拍」分別列出符合目前搜尋(與標籤/藝人篩選)條件的筆數 =====
   function updateSearchStats(){
     const wrap = document.getElementById('search-stats-wrap');
     if (!wrap) return;
-    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all';
+    const filterActive = !!currentSearchQuery || currentArtistFilter !== 'all' || currentTagFilter !== 'all' || currentLocationTypeFilter !== 'all';
     if (!filterActive){
       wrap.style.display = 'none';
       return;
@@ -2552,12 +2701,13 @@ if (coverPreview && all.length){
       const searchText = el.dataset.search || '';
       const tagOK = currentTagFilter === 'all' || tags.includes(currentTagFilter);
       const artistOK = currentArtistFilter === 'all' || artist === currentArtistFilter;
+      const locOK = currentLocationTypeFilter === 'all' || (el.dataset.locationType || '') === currentLocationTypeFilter;
       const searchOK = !currentSearchQuery || searchText.includes(currentSearchQuery);
-      const match = tagOK && artistOK && searchOK;
+      const match = tagOK && artistOK && locOK && searchOK;
       el.classList.toggle('tag-hidden', !match);
       if (match) visibleCount++;
     });
-    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || !!currentSearchQuery;
+    const filterActive = currentTagFilter !== 'all' || currentArtistFilter !== 'all' || currentLocationTypeFilter !== 'all' || !!currentSearchQuery;
     tagEmptyNote.classList.toggle('show', filterActive && visibleCount === 0);
     const resetBtn = document.getElementById('reset-filter-btn');
   if (resetBtn) {
@@ -2586,6 +2736,12 @@ if (coverPreview && all.length){
       b.classList.toggle('active', b.dataset.artist === 'all');
     });
 
+    // 2b. 重置室內外篩選按鈕
+    currentLocationTypeFilter = 'all';
+    document.querySelectorAll('#location-type-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.loc === 'all');
+    });
+
     // 3. 重置標籤篩選按鈕與選單
     currentTagFilter = 'all';
     renderTagFilter(latestAllPhotos);
@@ -2602,6 +2758,16 @@ if (coverPreview && all.length){
     btn.classList.add('active');
     renderGrids(latestByCategory);
     applyFilters(); // 重新套用目前的標籤/藝人/搜尋篩選
+  });
+
+  // ===== 室內／室外篩選 =====
+  document.getElementById('location-type-toggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    currentLocationTypeFilter = btn.dataset.loc;
+    document.querySelectorAll('#location-type-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
   });
   </script>
   <script>
@@ -2688,8 +2854,7 @@ if (coverPreview && all.length){
         width: '1',
         playerVars: {
           videoId: MUSIC_VIDEO_ID,
-          listType: 'playlist',
-          list: MUSIC_VIDEO_ID,
+          playlist: MUSIC_VIDEO_ID,
           loop: 1,
           autoplay: 1,
           mute: 1,
@@ -2705,7 +2870,9 @@ if (coverPreview && all.length){
             soundOn = false;
             updateBtnUI();
           },
-          onError: function(){}
+          onError: function(err){
+            console.error('背景音樂載入失敗（YouTube error code）：', err && err.data);
+          }
         }
       });
     };

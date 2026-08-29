@@ -294,6 +294,10 @@
         <label>座位</label>
         <input type="text" id="f-seat" placeholder="例如：3樓 A區 12排">
           </div>
+      <div class="field full">
+        <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
+        <input type="text" id="f-weather" placeholder="例如：雷陣雨 · 22°C（若當天自動查到的天氣不準，可在這裡手動修正）">
+      </div>
       <div class="field">
         <label>影片連結(直拍才需要填)</label>
         <input type="text" id="f-link" placeholder="例如：https://youtube.com/...">
@@ -435,6 +439,10 @@
       <label>座位</label>
       <input type="text" id="e-seat">
        </div>
+    <div class="field full">
+      <label>自訂天氣（覆蓋自動查詢，留空則用自動查詢的歷史天氣）</label>
+      <input type="text" id="e-weather" placeholder="例如：雷陣雨 · 22°C">
+    </div>
     <div class="field">
       <label>影片連結</label>
       <input type="text" id="e-link">
@@ -581,6 +589,7 @@
     const locationType = document.getElementById('f-location-type').value;
     const distance = document.getElementById('f-distance').value;
     const seat = document.getElementById('f-seat').value.trim();
+    const weather = document.getElementById('f-weather').value.trim();
     const link = document.getElementById('f-link').value.trim();
     const tags = parseTagsInput(document.getElementById('f-tags').value);
 
@@ -593,7 +602,7 @@
         uploadProgress.textContent = `上傳中… (${done + 1}/${selectedFiles.length})`;
         const url = await uploadToCloudinary(uploadFile);
         await addDoc(collection(db, 'photos'), {
-          url, category, artist, datetime, title, song, venue, city, equipment, exif, locationType, distance, seat, link, tags,
+          url, category, artist, datetime, title, song, venue, city, equipment, exif, locationType, distance, seat, weather, link, tags,
           allowDownload: document.getElementById('f-allow-download').checked,
           createdAt: serverTimestamp()
         });
@@ -619,6 +628,7 @@
     document.getElementById('f-location-type').value = '';
     document.getElementById('f-distance').value = '';
     document.getElementById('f-seat').value = '';
+    document.getElementById('f-weather').value = '';
     document.getElementById('f-link').value = '';
     document.getElementById('f-datetime').value = '';
     document.getElementById('f-tags').value = '';
@@ -861,6 +871,7 @@
           ${p.city ? `<div class="m">📍 ${escapeHTML(p.city)}</div>` : ''}
           ${p.exif ? `<div class="m">📷 ${escapeHTML(p.exif)}</div>` : ''}
           ${(p.locationType || p.distance) ? `<div class="m">${LOCATION_TYPE_LABEL[p.locationType] || ''}${(p.locationType && p.distance) ? ' · ' : ''}${p.distance ? '距離：' + (DISTANCE_LABEL[p.distance] || p.distance) : ''}</div>` : ''}
+          ${p.weather ? `<div class="m">🌡️ ${escapeHTML(p.weather)}（手動）</div>` : ''}
           ${(p.tags && p.tags.length) ? `<div class="m" style="margin-top:4px; color:var(--press);">${p.tags.map(t => '#' + escapeHTML(t)).join('  ')}</div>` : ''}
           <div class="stats"><span>♥ ${p.likes || 0}</span><span>👁 ${p.views || 0}</span><span>⬇ ${p.downloads || 0}</span></div>
         </div>
@@ -985,6 +996,7 @@
   const eLocationType = document.getElementById('e-location-type');
   const eDistance = document.getElementById('e-distance');
   const eSeat = document.getElementById('e-seat');
+    const eWeather = document.getElementById('e-weather');
     const eLink = document.getElementById('e-link');
   const eTags = document.getElementById('e-tags');
   const eAllowDownload = document.getElementById('e-allow-download');
@@ -1009,6 +1021,7 @@
     eLocationType.value = p.locationType || '';
     eDistance.value = p.distance || '';
     eSeat.value = p.seat || '';
+    eWeather.value = p.weather || '';
     eLink.value = p.link || '';
     eTags.value = (p.tags || []).join(', ');
     eAllowDownload.checked = !!p.allowDownload;
@@ -1041,6 +1054,7 @@
         locationType: eLocationType.value,
         distance: eDistance.value,
         seat: eSeat.value.trim(),
+        weather: eWeather.value.trim(),
         link: eLink.value.trim(),
         tags: parseTagsInput(eTags.value),
         allowDownload: eAllowDownload.checked
