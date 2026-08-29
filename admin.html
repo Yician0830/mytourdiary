@@ -699,24 +699,24 @@
     uploadBtn.disabled = false;
   });
 
-  // ===== EXIF：把「焦距／ISO／光圈」三個獨立欄位組合成一個字串存進資料庫 =====
+  // ===== EXIF：把「焦距／ISO／光圈」三個獨立欄位組合成一個字串存進資料庫（公開網站會直接顯示這個字串）=====
   function buildExifString(focal, iso, aperture){
     const parts = [];
-    if(aperture) parts.push('f/' + aperture);
-    if(iso) parts.push('ISO ' + iso);
-    if(focal) parts.push(focal + 'mm');
+    if(focal) parts.push('焦距' + focal + 'mm');
+    if(aperture) parts.push('f光圈' + aperture);
+    if(iso) parts.push('ISO' + iso);
     return parts.join(' · ');
   }
-  // 把存好的 exif 字串盡量拆回三個欄位（給編輯彈窗用；舊資料格式不同時，能抓到多少算多少）
+  // 把存好的 exif 字串盡量拆回三個欄位（給編輯彈窗用；同時支援新格式跟舊格式，能抓到多少算多少）
   function parseExifString(str){
     str = str || '';
-    const apertureMatch = str.match(/f\/\s*(\d+(?:\.\d+)?)/i);
+    const focalMatch = str.match(/焦距\s*(\d+(?:\.\d+)?)/) || str.match(/(\d+(?:\.\d+)?)\s*mm/i);
+    const apertureMatch = str.match(/f光圈\s*(\d+(?:\.\d+)?)/) || str.match(/f\/\s*(\d+(?:\.\d+)?)/i);
     const isoMatch = str.match(/ISO\s*(\d+)/i);
-    const focalMatch = str.match(/(\d+(?:\.\d+)?)\s*mm/i);
     return {
+      focal: focalMatch ? focalMatch[1] : '',
       aperture: apertureMatch ? apertureMatch[1] : '',
-      iso: isoMatch ? isoMatch[1] : '',
-      focal: focalMatch ? focalMatch[1] : ''
+      iso: isoMatch ? isoMatch[1] : ''
     };
   }
 
