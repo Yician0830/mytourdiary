@@ -118,6 +118,11 @@
   .batch-bar .select-all-label input{ width:16px; height:16px; padding:0; margin:0; border:none; background:none; flex:none; }
   .batch-bar .count{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); }
   .batch-bar button{ padding:9px 14px; font-size:11px; }
+  .batch-bar .batch-select-group{ display:flex; gap:6px; align-items:center; }
+  .batch-bar select{
+    font-family:var(--sans); font-size:12px; padding:8px 10px;
+    border:1px solid var(--line-strong); background:var(--paper); color:var(--ink);
+  }
 
   .filter-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
   .filter-row button{ background:var(--paper-2); color:var(--ink-dim); }
@@ -364,7 +369,43 @@
         <button type="button" id="batch-set-indoor">批次設為室內</button>
         <button type="button" id="batch-set-outdoor">批次設為室外</button>
         <button type="button" id="batch-edit-weather">批次編輯天氣</button>
+        <div class="batch-select-group">
+          <select id="batch-category-select">
+            <option value="stage">舞台焦點 On Stage</option>
+            <option value="fanmeet">近距離 Face to Face</option>
+            <option value="school">校唱 School Sing</option>
+            <option value="presser">記者會 Press Conference</option>
+            <option value="airport">飛行日記 Candid</option>
+            <option value="fancam">直拍精選 Fancam</option>
+          </select>
+          <button type="button" id="batch-apply-category">套用分類</button>
+        </div>
+        <div class="batch-select-group">
+          <select id="batch-city-select">
+            <option value="">— 未選擇 —</option>
+            <option value="台北">台北</option>
+            <option value="新北">新北</option>
+            <option value="基隆">基隆</option>
+            <option value="桃園">桃園</option>
+            <option value="新竹">新竹</option>
+            <option value="苗栗">苗栗</option>
+            <option value="台中">台中</option>
+            <option value="彰化">彰化</option>
+            <option value="南投">南投</option>
+            <option value="雲林">雲林</option>
+            <option value="嘉義">嘉義</option>
+            <option value="台南">台南</option>
+            <option value="高雄">高雄</option>
+            <option value="屏東">屏東</option>
+            <option value="宜蘭">宜蘭</option>
+            <option value="花蓮">花蓮</option>
+            <option value="台東">台東</option>
+          </select>
+          <button type="button" id="batch-apply-city">套用城市</button>
+        </div>
         <button type="button" id="batch-add-tags">批次加標籤</button>
+        <button type="button" id="batch-remove-tags">批次移除標籤</button>
+        <button type="button" id="batch-delete">批次刪除</button>
         <button type="button" class="btn-ghost" id="batch-clear">取消選取</button>
       </div>
       <div class="photo-grid" id="photo-grid"></div>
@@ -1064,6 +1105,20 @@
     e.target.disabled = false;
   });
 
+  document.getElementById('batch-apply-category').addEventListener('click', async (e) => {
+    const category = document.getElementById('batch-category-select').value;
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { category }));
+    e.target.disabled = false;
+  });
+
+  document.getElementById('batch-apply-city').addEventListener('click', async (e) => {
+    const city = document.getElementById('batch-city-select').value;
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.update(ref, { city }));
+    e.target.disabled = false;
+  });
+
   document.getElementById('batch-add-tags').addEventListener('click', async (e) => {
     const raw = prompt('要幫選取的 ' + selectedIds.size + ' 張照片加上哪些標籤？(用逗號分隔)');
     if(raw === null) return;
@@ -1085,6 +1140,39 @@
     }finally{
       e.target.disabled = false;
     }
+  });
+
+  document.getElementById('batch-remove-tags').addEventListener('click', async (e) => {
+    const raw = prompt('要從選取的 ' + selectedIds.size + ' 張照片移除哪些標籤？(用逗號分隔)');
+    if(raw === null) return;
+    const removeTags = parseTagsInput(raw);
+    if(!removeTags.length) return;
+    e.target.disabled = true;
+    const batch = writeBatch(db);
+    selectedIds.forEach(id => {
+      const p = allPhotos.find(x => x.id === id);
+      if(!p) return;
+      const remaining = (p.tags || []).filter(t => !removeTags.includes(t));
+      batch.update(doc(db, 'photos', id), { tags: remaining });
+    });
+    try{
+      await batch.commit();
+    }catch(err){
+      console.error(err);
+      alert('批次移除標籤失敗，請稍後再試一次');
+    }finally{
+      e.target.disabled = false;
+    }
+  });
+
+  document.getElementById('batch-delete').addEventListener('click', async (e) => {
+    if(!selectedIds.size) return;
+    if(!confirm('確定要刪除選取的 ' + selectedIds.size + ' 張照片嗎？(僅移除網站上的紀錄，Cloudinary 圖床上的原始檔不會自動刪除，此動作無法復原)')) return;
+    e.target.disabled = true;
+    await runBatchUpdate((batch, ref) => batch.delete(ref));
+    selectedIds.clear();
+    renderPhotoList();
+    e.target.disabled = false;
   });
 
     // ===== 編輯照片 =====
