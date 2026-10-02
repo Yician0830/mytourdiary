@@ -1,0 +1,55 @@
+# 每次推送內容時，自動把根目錄 meta.json 的 updated 改成今天（台北時間）
+name: Update meta.json
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - 'meta.json'
+      - '.github/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+jobs:
+  update-meta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update updated date
+        run: |
+          TODAY=$(TZ=Asia/Taipei date +%Y.%m.%d)
+          export TODAY
+          python3 - <<'PY'
+          import json, os
+
+          path = "meta.json"
+          data = {}
+          if os.path.exists(path):
+              try:
+                  with open(path, encoding="utf-8") as fh:
+                      data = json.load(fh)
+              except Exception:
+                  data = {}
+          data["updated"] = os.environ["TODAY"]
+          with open(path, "w", encoding="utf-8") as fh:
+              json.dump(data, fh, ensure_ascii=False, indent=2)
+              fh.write("\n")
+          print("updated", path, "->", data["updated"])
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No meta.json changes"
+          else
+            git commit -m "chore: update meta.json [skip ci]"
+            git push
+          fi
