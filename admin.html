@@ -574,7 +574,7 @@
     measurementId: "G-DBP2WDNQJD"
   };
   const CLOUDINARY_CLOUD_NAME = "nmldtpzv";
-  const CLOUDINARY_UPLOAD_PRESET = "lzy5vnvj";
+  const CLOUDINARY_UPLOAD_PRESET = "xm1rfejx";
   // ================================
 
   const app = initializeApp(firebaseConfig);
@@ -792,7 +792,7 @@
         done++;
       }catch(err){
         console.error(err);
-        uploadProgress.textContent = '上傳失敗：' + (err.message || 'Cloudinary 設定可能不正確');
+        uploadProgress.textContent = '上傳失敗：' + (err.message || 'Cloudinary 設定可能不正確') + ' [build 2026-10-17-v3, preset=' + CLOUDINARY_UPLOAD_PRESET + ']';
         uploadBtn.disabled = false;
         return;
       }
